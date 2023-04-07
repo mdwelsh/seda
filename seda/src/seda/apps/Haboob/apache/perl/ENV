@@ -1,0 +1,5 @@
+# Source this in the shell as root before starting httpd to pick up
+# perl modules on the perl include path
+
+export PERLLIB=$HOME/perl:`pwd`
+

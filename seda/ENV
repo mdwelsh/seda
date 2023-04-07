@@ -1,0 +1,9 @@
+# You can source this script in your (Bourne) shell to set up environment
+# variables for compiling and using the software in this tree.
+
+export PATH=$PATH:`pwd`/bin
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:`pwd`/lib
+export CLASSPATH=$CLASSPATH:`pwd`/src:.
+
+export CVSROOT=":ext:mdw@cvs.seda.sourceforge.net:/cvsroot/seda"
+

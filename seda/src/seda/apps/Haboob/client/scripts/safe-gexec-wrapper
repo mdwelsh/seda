@@ -1,0 +1,88 @@
+#!/usr/bin/perl
+
+# safe-gexec-wrapper: server-side "wrapper" to jobs started by safe-gexec.
+# Handshakes with safe-gexec client before starting job and outputs other
+# information useful when processing logs.
+#
+# Matt Welsh, mdw@cs.berkeley.edu
+
+require 5.002;
+use Socket;
+use Getopt::Std;
+
+sub usage {
+  print STDERR "Usage: safe-gexec-wrapper <host>:<port> <key> <cmd>\n";
+  exit -1;
+}
+
+if ($#ARGV == -1) { 
+  &usage;
+}
+
+$HOSTPORT = shift;
+$KEY = shift;
+@CMD = @ARGV;
+
+$OUTPUT_AUTOFLUSH = 1;
+
+($CLIENTHOST, $CLIENTPORT) = split(':',$HOSTPORT);
+
+$hostname = `hostname -f`; chop $hostname;
+$uname = `uname -a`; chop $uname;
+$date = `date`; chop $date;
+print STDERR "#SAFE-REXEC-WRAPPER: argv @CMD\n";
+print STDERR "#SAFE-REXEC-WRAPPER: key $KEY\n";
+print STDERR "#SAFE-REXEC-WRAPPER: hostname $hostname\n";
+print STDERR "#SAFE-REXEC-WRAPPER: uname $uname\n";
+print STDERR "#SAFE-REXEC-WRAPPER: date $date\n";
+
+$CONNECT_ESTABLISHED = 0;
+
+# Set up connect timeout
+$SIG{ALRM} = sub { 
+  if (!$CONNECT_ESTABLISHED) {
+    print STDERR "#SAFE-REXEC-WRAPPER: alarm\n";
+    $date = `date`; chop $date;
+    print STDERR "#SAFE-REXEC-WRAPPER: exit-time $date\n";
+    exit 0;
+  }
+};
+alarm 10;
+
+$iaddr = inet_aton($CLIENTHOST) || die "no host: $CLIENTHOST\n";
+$paddr = sockaddr_in($CLIENTPORT, $iaddr);
+my $proto = getprotobyname('tcp');
+socket(SOCK, PF_INET, SOCK_STREAM, $proto) || die "socket: $!";
+connect(SOCK, $paddr) || die "connect: $!";
+
+$msg = "safe-gexec\nkey $KEY\nok\n";
+send (SOCK, $msg, 0) || die "send: $!";
+
+$cmd = <SOCK>;
+print STDERR "#SAFE-REXEC-WRAPPER: Got command $cmd\n";
+
+$CONNECT_ESTABLISHED = 1;
+alarm 0;
+
+if ($cmd =~ /^run/) {
+  send (SOCK, "ok\n", 0) || die "send: $!";
+  close (SOCK);
+
+  # Kill off any dead jobs
+#  $thecmd = "killall -9 $CMD[0]";
+#  system($killcmd);
+
+  # Sleep for random amount of time to avoid overloading NFS
+  $sleeptime = 5.0*rand();
+  select(undef, undef, undef, $sleeptime);
+
+  system(@CMD);
+  print STDERR "#SAFE-REXEC-WRAPPER: job-done\n";
+
+} else {
+  close (SOCK);
+}
+$date = `date`; chop $date;
+print STDERR "#SAFE-REXEC-WRAPPER: exit-time $date\n";
+exit 0;
+

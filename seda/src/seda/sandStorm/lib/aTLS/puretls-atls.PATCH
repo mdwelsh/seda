@@ -1,0 +1,455 @@
+This is a patch against PureTLS that makes several changes necessary for
+PureTLS to work with aTLS. (Mostly this involves opening up some
+internal state in PureTLS so that the aTLS package can access it.)
+
+To apply this patch, cd to your puretls directory and type
+	patch -p1 < /path/to/aTLS/puretls-atls.PATCH
+replacing "/path/to/aTLS" to the aTLS directory where this patch file is 
+found.
+
+Dennis Chi <denchi@uclink4.berkeley.edu>
+
+--------
+
+diff -cr puretlsclean/src/COM/claymoresystems/ptls/SSLConn.java puretlsnew/src/COM/claymoresystems/ptls/SSLConn.java
+*** puretlsclean/src/COM/claymoresystems/ptls/SSLConn.java	Fri Feb 23 12:04:25 2001
+--- puretlsnew/src/COM/claymoresystems/ptls/SSLConn.java	Wed Aug  8 14:16:56 2001
+***************
+*** 47,53 ****
+  import java.net.*;
+  import java.io.*;
+  
+! class SSLConn {
+       static final int SSL_CLIENT = 1;
+       static final int SSL_SERVER = 2;
+  
+--- 47,53 ----
+  import java.net.*;
+  import java.io.*;
+  
+! public class SSLConn {
+       static final int SSL_CLIENT = 1;
+       static final int SSL_SERVER = 2;
+  
+***************
+*** 56,74 ****
+       static int debugVal=0;
+       
+       /* Connection Housekeeping*/
+!      int ssl_version=0;
+!      int max_ssl_version=0;
+       
+       SSLContext ctx;
+       SSLSocket s=null;
+       SSLPolicyInt policy;               // The policy we're following
+!      PushbackInputStream sock_in;               // The stream to do our raw reading on
+!      InputStream sock_in_hp;	// The stream for handshake messages
+!      InputStream sock_in_data;          // The stream for app data;
+  
+!      OutputStream _sock_out; // The stream to do our raw writing on
+!      BufferedOutputStream sock_out;
+!      OutputStream sock_out_external; // The stream to expose
+       boolean sentClose=false;
+       boolean recvdClose=false;
+       Vector peerCertificateChain=null;
+--- 56,74 ----
+       static int debugVal=0;
+       
+       /* Connection Housekeeping*/
+!      public int ssl_version=0;
+!      public int max_ssl_version=0;
+       
+       SSLContext ctx;
+       SSLSocket s=null;
+       SSLPolicyInt policy;               // The policy we're following
+!      public PushbackInputStream sock_in;               // The stream to do our raw reading on
+!      public InputStream sock_in_hp;	// The stream for handshake messages
+!      public InputStream sock_in_data;          // The stream for app data;
+  
+!      public OutputStream _sock_out; // The stream to do our raw writing on
+!      public BufferedOutputStream sock_out;
+!      public OutputStream sock_out_external; // The stream to expose
+       boolean sentClose=false;
+       boolean recvdClose=false;
+       Vector peerCertificateChain=null;
+***************
+*** 83,92 ****
+       long write_sequence_num;
+       long read_sequence_num;
+       
+!      SSLHandshake hs;	    // The handshake object
+       SSLRecordReader rdr;   // The record reader
+  
+!      SSLConn(SSLSocket sock,InputStream in,OutputStream out,SSLContext c,
+         int how)
+         throws java.io.IOException {
+         this.s=sock;
+--- 83,92 ----
+       long write_sequence_num;
+       long read_sequence_num;
+       
+!      public SSLHandshake hs;	    // The handshake object
+       SSLRecordReader rdr;   // The record reader
+  
+!      public SSLConn(SSLSocket sock,InputStream in,OutputStream out,SSLContext c,
+         int how)
+         throws java.io.IOException {
+         this.s=sock;
+diff -cr puretlsclean/src/COM/claymoresystems/ptls/SSLHandshake.java puretlsnew/src/COM/claymoresystems/ptls/SSLHandshake.java
+*** puretlsclean/src/COM/claymoresystems/ptls/SSLHandshake.java	Tue Mar 13 19:27:02 2001
+--- puretlsnew/src/COM/claymoresystems/ptls/SSLHandshake.java	Wed Aug  8 14:30:32 2001
+***************
+*** 52,58 ****
+  import java.util.Vector;
+  import java.util.Date;
+  
+! abstract class SSLHandshake {
+       public static final int SSL_HT_HELLO_REQUEST = 0;
+       public static final int SSL_HT_CLIENT_HELLO = 1;
+       public static final int SSL_HT_SERVER_HELLO = 2;
+--- 52,58 ----
+  import java.util.Vector;
+  import java.util.Date;
+  
+! public abstract class SSLHandshake {
+       public static final int SSL_HT_HELLO_REQUEST = 0;
+       public static final int SSL_HT_CLIENT_HELLO = 1;
+       public static final int SSL_HT_SERVER_HELLO = 2;
+***************
+*** 81,89 ****
+       ByteArrayOutputStream os=new ByteArrayOutputStream();
+       
+       /*Housekeeping*/
+!      int state;
+       SSLConn _conn;
+!      byte session_id[];
+       boolean client;
+       CertContext cert_ctx;
+       Vector cipher_suites;
+--- 81,89 ----
+       ByteArrayOutputStream os=new ByteArrayOutputStream();
+       
+       /*Housekeeping*/
+!      public int state;
+       SSLConn _conn;
+!      public byte session_id[];
+       boolean client;
+       CertContext cert_ctx;
+       Vector cipher_suites;
+diff -cr puretlsclean/src/COM/claymoresystems/ptls/SSLHandshakeClient.java puretlsnew/src/COM/claymoresystems/ptls/SSLHandshakeClient.java
+*** puretlsclean/src/COM/claymoresystems/ptls/SSLHandshakeClient.java	Tue Mar 20 23:07:58 2001
+--- puretlsnew/src/COM/claymoresystems/ptls/SSLHandshakeClient.java	Wed Aug  8 14:20:30 2001
+***************
+*** 50,56 ****
+  import xjava.security.Cipher;
+  import java.security.PrivateKey;
+  
+! class SSLHandshakeClient extends SSLHandshake
+  {
+       public final int SSL_HS_HANDSHAKE_START		    = 0;
+       public final int SSL_HS_SENT_CLIENT_HELLO = 1;
+--- 50,56 ----
+  import xjava.security.Cipher;
+  import java.security.PrivateKey;
+  
+! public class SSLHandshakeClient extends SSLHandshake
+  {
+       public final int SSL_HS_HANDSHAKE_START		    = 0;
+       public final int SSL_HS_SENT_CLIENT_HELLO = 1;
+***************
+*** 63,68 ****
+--- 63,69 ----
+       boolean resume=false;
+       SSLSessionData possibleResume;
+       boolean clientAuth=false;
++      public byte[] aTLSSessionID;
+       
+       public SSLHandshakeClient(SSLConn c){
+         super(c);
+***************
+*** 151,157 ****
+  	     sendChangeCipherSpec();	     
+  	     sendFinished();
+  	   }
+! 	   storeSession(sessionLookupKey());
+  	   stateChange(SSL_HANDSHAKE_FINISHED);
+  	   break;
+  	 default:
+--- 152,158 ----
+  	     sendChangeCipherSpec();	     
+  	     sendFinished();
+  	   }
+! 	   storeSession(new String (session_id));
+  	   stateChange(SSL_HANDSHAKE_FINISHED);
+  	   break;
+  	 default:
+***************
+*** 161,175 ****
+         // TODO: Add a check to make sure we've read everything in the msg?
+       }
+  
+!      private void sendClientHello()
+         throws java.io.IOException {
+         SSLClientHello ch=new SSLClientHello();
+         byte[] sid=new byte[0];
+         
+         int i;
+  
+!        possibleResume=findSession(sessionLookupKey());
+!        
+         ch.client_version.value=_conn.ssl_version;
+         rng.nextBytes(client_random);
+         ch.random.value=client_random;
+--- 162,181 ----
+         // TODO: Add a check to make sure we've read everything in the msg?
+       }
+  
+!      public void sendClientHello()
+         throws java.io.IOException {
+         SSLClientHello ch=new SSLClientHello();
+         byte[] sid=new byte[0];
+         
+         int i;
+  
+!        if (aTLSSessionID != null) {
+! 	   possibleResume=findSession(new String (aTLSSessionID));
+!        }
+!        else {
+! 	   possibleResume = null;
+!        }
+! 
+         ch.client_version.value=_conn.ssl_version;
+         rng.nextBytes(client_random);
+         ch.random.value=client_random;
+diff -cr puretlsclean/src/COM/claymoresystems/ptls/SSLHandshakeServer.java puretlsnew/src/COM/claymoresystems/ptls/SSLHandshakeServer.java
+*** puretlsclean/src/COM/claymoresystems/ptls/SSLHandshakeServer.java	Tue Mar 13 10:57:20 2001
+--- puretlsnew/src/COM/claymoresystems/ptls/SSLHandshakeServer.java	Wed Aug  8 14:18:42 2001
+***************
+*** 50,56 ****
+  import java.math.BigInteger;
+  import java.security.PrivateKey;
+  
+! class SSLHandshakeServer extends SSLHandshake
+  {
+       public final int SSL_HS_WAIT_FOR_CLIENT_HELLO	=1;
+       public final int SSL_HS_WAIT_FOR_CERTIFICATE       = 2;
+--- 50,56 ----
+  import java.math.BigInteger;
+  import java.security.PrivateKey;
+  
+! public class SSLHandshakeServer extends SSLHandshake
+  {
+       public final int SSL_HS_WAIT_FOR_CLIENT_HELLO	=1;
+       public final int SSL_HS_WAIT_FOR_CERTIFICATE       = 2;
+***************
+*** 67,73 ****
+       private static final int SSL2_CK_DES_192_EDE3_CBC_WITH_MD5=0x060080;     // No match in v3
+  
+      
+!      boolean resume=false;
+       boolean clientAuth=false;
+       SSLSessionData possibleResume=null;
+       Vector offered_cipher_suites;
+--- 67,73 ----
+       private static final int SSL2_CK_DES_192_EDE3_CBC_WITH_MD5=0x060080;     // No match in v3
+  
+      
+!      public boolean resume=false;
+       boolean clientAuth=false;
+       SSLSessionData possibleResume=null;
+       Vector offered_cipher_suites;
+diff -cr puretlsclean/src/COM/claymoresystems/ptls/SSLInputStream.java puretlsnew/src/COM/claymoresystems/ptls/SSLInputStream.java
+*** puretlsclean/src/COM/claymoresystems/ptls/SSLInputStream.java	Fri Feb 23 12:04:25 2001
+--- puretlsnew/src/COM/claymoresystems/ptls/SSLInputStream.java	Wed Aug  8 14:17:33 2001
+***************
+*** 45,53 ****
+  import java.io.*;
+  import java.util.*;
+  
+! class SSLInputStream extends InputStream {
+       Vector d=new Vector();
+!      SSLRecordReader rdr;
+       Silo silo=new Silo(1024);
+       
+       public SSLInputStream(SSLRecordReader r){
+--- 45,53 ----
+  import java.io.*;
+  import java.util.*;
+  
+! public class SSLInputStream extends InputStream {
+       Vector d=new Vector();
+!      public SSLRecordReader rdr;
+       Silo silo=new Silo(1024);
+       
+       public SSLInputStream(SSLRecordReader r){
+diff -cr puretlsclean/src/COM/claymoresystems/ptls/SSLOutputStream.java puretlsnew/src/COM/claymoresystems/ptls/SSLOutputStream.java
+*** puretlsclean/src/COM/claymoresystems/ptls/SSLOutputStream.java	Fri Feb 23 12:04:25 2001
+--- puretlsnew/src/COM/claymoresystems/ptls/SSLOutputStream.java	Wed Aug  8 14:17:48 2001
+***************
+*** 44,50 ****
+  import COM.claymoresystems.*;
+  import java.io.*;
+  
+! class SSLOutputStream extends OutputStream {
+       SSLConn conn;
+  
+       public SSLOutputStream(SSLConn c){
+--- 44,50 ----
+  import COM.claymoresystems.*;
+  import java.io.*;
+  
+! public class SSLOutputStream extends OutputStream {
+       SSLConn conn;
+  
+       public SSLOutputStream(SSLConn c){
+diff -cr puretlsclean/src/COM/claymoresystems/ptls/SSLRecord.java puretlsnew/src/COM/claymoresystems/ptls/SSLRecord.java
+*** puretlsclean/src/COM/claymoresystems/ptls/SSLRecord.java	Tue Mar 13 19:27:02 2001
+--- puretlsnew/src/COM/claymoresystems/ptls/SSLRecord.java	Wed Aug  8 14:20:48 2001
+***************
+*** 45,55 ****
+  import java.io.*;
+  
+  // This class only does plaintext right now
+! class SSLRecord extends SSLPDU
+  {
+       SSLuint8 type=new SSLuint8();
+       SSLuint16 version=new SSLuint16();
+!      SSLopaque data=new SSLopaque(-65535);
+  
+       public static final int SSL_CT_CHANGE_CIPHER_SPEC = 20;
+       public static final int SSL_CT_ALERT = 21;
+--- 45,55 ----
+  import java.io.*;
+  
+  // This class only does plaintext right now
+! public class SSLRecord extends SSLPDU
+  {
+       SSLuint8 type=new SSLuint8();
+       SSLuint16 version=new SSLuint16();
+!      public SSLopaque data=new SSLopaque(-65535);
+  
+       public static final int SSL_CT_CHANGE_CIPHER_SPEC = 20;
+       public static final int SSL_CT_ALERT = 21;
+diff -cr puretlsclean/src/COM/claymoresystems/ptls/SSLRecordReader.java puretlsnew/src/COM/claymoresystems/ptls/SSLRecordReader.java
+*** puretlsclean/src/COM/claymoresystems/ptls/SSLRecordReader.java	Wed Nov  1 11:13:36 2000
+--- puretlsnew/src/COM/claymoresystems/ptls/SSLRecordReader.java	Wed Aug  8 14:18:08 2001
+***************
+*** 43,49 ****
+  package COM.claymoresystems.ptls;
+  import java.io.*;
+  
+! class SSLRecordReader {
+       SSLConn conn;
+  
+       public SSLRecordReader(SSLConn c){
+--- 43,49 ----
+  package COM.claymoresystems.ptls;
+  import java.io.*;
+  
+! public class SSLRecordReader {
+       SSLConn conn;
+  
+       public SSLRecordReader(SSLConn c){
+***************
+*** 57,63 ****
+       // The array of input streams.
+       // this is the content type -21
+       // Is there a cleaner way to build this?
+!      SSLInputStream streams[]={
+  	  new SSLInputStream(this),
+  	  new SSLInputStream(this)};
+       
+--- 57,63 ----
+       // The array of input streams.
+       // this is the content type -21
+       // Is there a cleaner way to build this?
+!      public SSLInputStream streams[]={
+  	  new SSLInputStream(this),
+  	  new SSLInputStream(this)};
+       
+diff -cr puretlsclean/src/COM/claymoresystems/ptls/SSLopaque.java puretlsnew/src/COM/claymoresystems/ptls/SSLopaque.java
+*** puretlsclean/src/COM/claymoresystems/ptls/SSLopaque.java	Thu Oct  7 18:19:34 1999
+--- puretlsnew/src/COM/claymoresystems/ptls/SSLopaque.java	Wed Aug  8 14:20:56 2001
+***************
+*** 44,53 ****
+  package COM.claymoresystems.ptls;
+  import java.io.*;
+  
+! class SSLopaque extends SSLPDU
+  {
+       int length;
+!      byte[] value;
+       
+       public SSLopaque(int l){
+         length=l;
+--- 44,53 ----
+  package COM.claymoresystems.ptls;
+  import java.io.*;
+  
+! public class SSLopaque extends SSLPDU
+  {
+       int length;
+!      public byte[] value;
+       
+       public SSLopaque(int l){
+         length=l;
+diff -cr puretlsclean/src/COM/claymoresystems/ptls/SSLuint16.java puretlsnew/src/COM/claymoresystems/ptls/SSLuint16.java
+*** puretlsclean/src/COM/claymoresystems/ptls/SSLuint16.java	Thu Oct  7 18:19:34 1999
+--- puretlsnew/src/COM/claymoresystems/ptls/SSLuint16.java	Wed Aug  8 14:33:12 2001
+***************
+*** 43,49 ****
+  
+  package COM.claymoresystems.ptls;
+  
+! class SSLuint16 extends SSLuintX {
+       public SSLuint16() {
+         super((short)2);
+       }
+--- 43,49 ----
+  
+  package COM.claymoresystems.ptls;
+  
+! public class SSLuint16 extends SSLuintX {
+       public SSLuint16() {
+         super((short)2);
+       }
+diff -cr puretlsclean/src/COM/claymoresystems/ptls/SSLuint8.java puretlsnew/src/COM/claymoresystems/ptls/SSLuint8.java
+*** puretlsclean/src/COM/claymoresystems/ptls/SSLuint8.java	Thu Oct  7 18:19:34 1999
+--- puretlsnew/src/COM/claymoresystems/ptls/SSLuint8.java	Wed Aug  8 14:33:01 2001
+***************
+*** 43,49 ****
+  
+  package COM.claymoresystems.ptls;
+  
+! class SSLuint8 extends SSLuintX {
+       public SSLuint8() {
+         super((short)1);
+       }
+--- 43,49 ----
+  
+  package COM.claymoresystems.ptls;
+  
+! public class SSLuint8 extends SSLuintX {
+       public SSLuint8() {
+         super((short)1);
+       }
+diff -cr puretlsclean/src/COM/claymoresystems/ptls/SSLuintX.java puretlsnew/src/COM/claymoresystems/ptls/SSLuintX.java
+*** puretlsclean/src/COM/claymoresystems/ptls/SSLuintX.java	Thu Oct  7 18:19:34 1999
+--- puretlsnew/src/COM/claymoresystems/ptls/SSLuintX.java	Wed Aug  8 14:33:46 2001
+***************
+*** 48,54 ****
+  
+  class SSLuintX extends SSLPDU
+  {
+!      int value;
+       short size;
+  
+       public SSLuintX(short s){
+--- 48,54 ----
+  
+  class SSLuintX extends SSLPDU
+  {
+!      public int value;
+       short size;
+  
+       public SSLuintX(short s){

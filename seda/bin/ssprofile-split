@@ -1,0 +1,30 @@
+#!/usr/bin/perl
+
+# Split a sandstorm-profile.txt into multiple files, one for each run.
+#
+# Matt Welsh, mdw@cs.berkeley.edu
+
+use Getopt::Std;
+
+sub usage {
+  print STDERR "Usage: ssprofile-split <profile>\n";
+  exit -1;
+}
+
+if ($#ARGV < 0) { &usage; }
+
+$fname = $ARGV[$#ARGV];
+$n = 0;
+
+open(IN, "$fname") || die "Can't open $fname\n";
+while (<IN>) {
+  if (/##### Profile started at/) {
+    if ($n != 0) {
+      close (OUT);
+    }
+    $n++;
+    open(OUT,">$fname.$n") || die "Can't open $fname.$n for writing\n";
+  }
+  print OUT;
+}
+close(IN);

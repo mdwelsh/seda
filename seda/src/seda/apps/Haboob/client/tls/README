@@ -1,0 +1,4 @@
+This is a variant of HttpLoad.java that uses the aTLS library to create
+authenticated connections. Simply type "make" in this directory if you
+wish to use it.
+

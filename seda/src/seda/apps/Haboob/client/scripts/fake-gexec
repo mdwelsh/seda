@@ -1,0 +1,18 @@
+#!/usr/bin/perl
+
+# This is a script that emulates the behavior of the Millennium
+# "gexec" command. It simply forks the given command, prepending the 
+# string "0 " to each line output by the program. This is to be used 
+# if you don't have gexec command installed but want to use our
+# scripts for testing.
+
+$CMD = join(" ",@ARGV);
+print "#FAKE-REXEC: Running cmd: $CMD\n";
+
+open(CMD,"$CMD 2>&1|") || die "Can't run $CMD\n";
+while (<CMD>) {
+  print "0 $_";
+}
+
+print "#FAKE-REXEC: Done.\n";
+

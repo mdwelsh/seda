@@ -1,0 +1,138 @@
+<html><head>
+<title>SEDA - The Staged Event-Driven Architecture</title>
+</head>
+
+<body bgcolor="#f8f8ff" link="#005BB7" vlink="#005BB7">
+
+<p>
+<table border=0 hspace=4 cellspacing=2 width="100%" cellpadding=3>
+<tr bgcolor="#d8d8d8">
+<td width="100%">
+<p>
+<font face="tahoma,arial,helvetica"><b><big><big>
+SEDA - The Staged Event-Driven Architecture
+</big></big></b>
+<br>
+Release notes
+
+<p>
+<a href="http://www.cs.berkeley.edu/~mdw">Matt Welsh</a>,
+<a href="mailto:mdw@cs.berkeley.edu">mdw@cs.berkeley.edu</a><br>
+Last updated 11 July 2002
+</font>
+
+</td></tr>
+</table>
+
+<p>
+<table border=0 hspace=4 cellspacing=2 width="100%" cellpadding=3>
+<tr bgcolor="#e0e0e8">
+<td width="100%"><nobr><b><font
+face="arial,helvetica">Introduction</font></b></nobr></td>
+</tr></table>
+
+<p>
+The Staged Event-Driven Architecture (SEDA) is a new design for building
+scalable Internet services. SEDA has three major goals:
+<ul>
+<li> To support massive concurrency, on the order of tens of thousands
+of clients per node;
+<li> To exhibit robust performance under wide variations in load; and,
+<li> To simplify the design of complex Internet services.
+</ul>
+
+<p>
+SEDA decomposes a complex, event-driven application into a set of 
+<em>stages</em> connected by <em>queues</em>. This design avoids the high 
+overhead associated with thread-based concurrency models, and decouples 
+event and thread scheduling from application logic. SEDA enables services 
+to be well-conditioned to load, preventing resources from being 
+overcommitted when demand exceeds service capacity. Decomposing services 
+into a set of stages also enables modularity and code reuse, as well 
+as the development of debugging tools for complex event-driven applications.
+
+
+<p>
+<table border=0 hspace=4 cellspacing=2 width="100%" cellpadding=3>
+<tr bgcolor="#e0e0e8">
+<td width="100%"><nobr><b><font
+face="arial,helvetica">Installation and Usage Documentation</font></b></nobr></td>
+</tr></table>
+
+<p>
+The SEDA project currently consists of two software packages.
+<ul>
+<li> <a href="nbio.html">NBIO</a>, 
+a library providing nonblocking socket I/O interfaces in Java
+<li> <a href="sandstorm.html">Sandstorm</a>, 
+a Java-based Internet services platform, based on the SEDA design
+</ul>
+Please follow the links above for information on requirements,
+installation, and use of each package.
+
+<p>
+Sandstorm provides a rich set of interfaces for developing SEDA-based
+Internet services, and uses the NBIO library (or, alternately, the 
+JDK 1.4 <tt>java.nio</tt> package) for nonblocking I/O operations.
+NBIO can also be used by itself, without Sandstorm. 
+
+<p>
+<table border=0 hspace=4 cellspacing=2 width="100%" cellpadding=3>
+<tr bgcolor="#e0e0e8">
+<td width="100%"><nobr><b><font
+face="arial,helvetica">More information</font></b></nobr></td>
+</tr></table>
+
+<p>
+The SEDA home page is <a href="http://www.cs.berkeley.edu/~mdw/proj/seda">http://www.cs.berkeley.edu/~mdw/proj/seda</a>. This includes links to this 
+source code release as well as papers, talks, and other background
+material.
+
+<p>
+For mailing list info, releases, bug tracking, etc. see the
+SEDA SourceForge project page at
+<a href="http://seda.sourceforge.net/">http://seda.sourceforge.net</a>.
+
+<p>
+<table border=0 hspace=4 cellspacing=2 width="100%" cellpadding=3>
+<tr bgcolor="#e0e0e8">
+<td width="100%"><nobr><b><font
+face="arial,helvetica">Copyright license</font></b></nobr></td>
+</tr></table>
+
+<p>
+All of the software in this tree is covered by the following Open Source
+license.
+
+<p>
+<b>
+ Copyright (c) 2002 by The Regents of the University of California
+ All rights reserved.</b>
+ 
+<p>
+<b>
+ Permission to use, copy, modify, and distribute this software and its
+ documentation for any purpose, without fee, and without written agreement is
+ hereby granted, provided that the above copyright notice and the following
+ two paragraphs appear in all copies of this software.</b>
+ 
+<p>
+<b>
+ IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR
+ DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES ARISING OUT
+ OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF THE UNIVERSITY OF
+ CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</b>
+ 
+<p>
+<b>
+ THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+ INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
+ AND FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE PROVIDED HEREUNDER IS
+ ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION TO
+ PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
+</b>
+
+<p><hr><p>
+<p><a href="http://www.cs.berkeley.edu/~mdw/">Matt Welsh</a>, 
+<a href="mailto:mdw@cs.berkeley.edu">mdw@cs.berkeley.edu</a>
+

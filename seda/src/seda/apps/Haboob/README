@@ -1,0 +1,153 @@
+Haboob, a high-performance HTTP Server 
+Matt Welsh, mdw@cs.berkeley.edu
+
+Last modified 12 July 2002
+
+=============================================================================
+
+"There is a whirlwind in southern Morocco, the aajej, against which the 
+fellahin defend themselves with knives. There is the africo, which has 
+at times reached into the city of Rome. The alm, a fall wind out of 
+Yugoslavia. The arifi, also christened aeref or rifi, which scorches 
+with numerous tongues. These are permanent winds that live in the 
+present tense. 
+
+"There are other, less constant winds that change direction, that can
+knock down horse and rider and realign themselves anticlockwise. The
+bist roz leaps into Afghanistan for 170 days - burying villages. There 
+is the hot, dry ghibli from Tunis, which rolls and rolls and produces 
+a nervous condition. The haboob - a Sudan dust storm that dresses in 
+bright yellow walls a thousand metres high and is followed by rain. 
+The harmattan, which blows and eventually drowns itself into the Atlantic. 
+Imbat, a seabreeze in North Africa. Some winds that just sigh towards the 
+sky.  Night dust storms that come with the cold. The khamsin, a dust in 
+Egupt from March to May, named after the Arabic word for 'fifty', blooming 
+for fifty days - the ninth plague of Egypt. The datooi out of Gibraltar, 
+which carries fragrance."
+
+                                 -- Michael Ondaatje, The English Patient
+
+=============================================================================
+
+Haboob is an example application built using the Sandstorm Internet 
+services platform. More information can be found at:
+	http://www.cs.berkeley.edu/~mdw/proj/seda/
+
+This is not meant to be a fully-functional Web server, but it does have
+many of the features required of "real" Web servers, including HTTP/1.1
+persistent connections, MIME type tagging, and directory URL redirection.
+A complete description of the Haboob architecture and performance
+comparisons against Apache and Flash can be found in the papers at the
+above website.
+
+To run Haboob, you will need to download and install the Sandstorm system, 
+also available at the above URL. Compiling Haboob is easy: type "make" 
+in this directory after building Sandstorm.
+
+Haboob is configured by editing the file haboob.cfg in this directory.
+Many of the options are self-explanatory: you can set the root directory
+of the file tree, the port that the server listens on, the size of the 
+page cache, and so forth. To run Haboob, just type
+	sandstorm haboob.cfg
+
+Recently-accessed static web pages are cached in memory. There are 
+several implementations of the page cache, all in the 'cache' directory.
+The best is PageCacheSized.java - the others are left there for testing
+or historical reasons. For example, cache/StaticPage.java returns a
+fixed-size Web page for every request, which is good for benchmarking
+the raw functionality the server. You can configure which cache
+implementation is used by editing haboob.cfg.
+
+If you access the special URL "/HABOOB" on a running Haboob server, a
+Web page providing statistics (e.g., cache hit rate, etc.) will be
+returned.
+
+HDAPI: the Haboob Dynamic API
+-----------------------------
+
+Dynamic pages are implemented uising as a Java class for each page that 
+implements the HDAPI (Haboob Dynamic API) interface. Using HDAPI is 
+simple; simply write a Java class that implements 'httpRequestHandlerIF', 
+found in the 'hdapi' directory. This interface has one method:
+	httpResponse handleRequest(httpRequest request);
+that takes a single HTTP request and returns a response. See
+the Javadoc documentation for seda.sandStorm.lib.http (in the Sandstorm
+distribution) for details on the httpRequest and httpResponse times.
+See hdapi/test/Test.java for an example of HDAPI.
+
+To assign a URL to your dynamic page, edit haboob-hdapi.cfg, which has 
+lines of the form:
+	URL CLASS
+for example,
+	/testing seda.apps.Haboob.hdapi.test.MyTest
+will cause the class 'MyTest' (that must implement httpRequestHandlerIF) 
+to be invoked whenever the URL "/testing" is accessed. Note that more 
+than one URL can map onto the same HDAPI class; the HDAPI class can 
+then look at the URL (using httpRequest.getURL()) to determine which 
+action to take.
+
+To use HDAPI, you must include the following stanza in the Haboob
+configuration file:
+  
+  <stages>
+
+    <DynamicHttp>
+    class seda.apps.Haboob.hdapi.DynamicHttp
+    <initargs>
+      conffile hdapi.cfg
+    </initargs>
+    </DynamicHttp>
+
+  </stages>
+
+
+PyTeC: The Python HDAPI Interface
+---------------------------------
+
+PyTeC allows HDAPI classes to be implemented as HTML templates with code
+embedded in the Python language. See pytec/test for examples and a
+Makefile that will do the build process. The script pytec.py compiles a
+.pytec source file into Python code, which is then compiled to a Java
+class using jythonc. 
+
+To use PyTeC, you need to install Jython, a Java implementaton of
+Python, available at http://www.jython.org. You also need to install
+Python v2.0 or later. Python 1.x will *not* work.
+
+  - Be sure that Python2.0 is on your PATH. (On Linux systems the
+    appropriate command is 'python2' rather than 'python'.) If you get 
+    weird errors trying to compile the PyTeC code, be absolutely sure 
+    you are using Python 2.
+
+  - Place the Jython installation directory (the location of the
+    'jython' and 'jythonc' scripts) in your PATH.
+ 
+  - Place 'jython.jar' from your Jython installation on your CLASSPATH.
+
+To compile PyTeC and the test programs, cd to 'hdapi/pytec' and type
+'make'. The 'hdapi/pytec/test' directory contains a test script,
+'test.pytec'. This is compiled to 'pytec-compiled.jar', which must be on
+your CLASSPATH before running Haboob.
+
+To test it out, be sure the line
+	/testpytec seda.apps.Haboob.hdapi.pytec.test.test
+is in haboob-hdapi.cfg. Then run Haboob and access the URL /testpytec.
+If you have problems check your CLASSPATH, since this is usually the
+problem: you need jython.jar *and* hdapi/pytec/test/pytec-compiled.jar
+on your CLASSPATH.
+
+Note that the first time you access a PyTeC script, it may take a long
+time to execute, as the JIT will need to compile a large number of
+classes (e.g., for Jython) before executing your code. Subsequent
+accesses should perform well, however.
+
+Client load generator
+---------------------
+
+See the 'client' directory for a "SPECweb99-like" load generator that
+can be used to measure the performance of Haboob and other Web servers.
+
+Please get in touch if you have any questions!
+
+Matt Welsh, mdw@cs.berkeley.edu
+

@@ -1,0 +1,8 @@
+# Source this file in your shell to set up CLASSPATH 
+
+#CRYPTIX_HOME=$HOME/src/download/cryptix
+#PURETLS_HOME=$HOME/src/download/puretls-atls
+#
+#export CLASSPATH=$CRYPTIX_HOME/src:$CLASSPATH:$PURETLS_HOME/src
+
+export CLASSPATH=`pwd`/cryptix.jar:`pwd`/puretls-atls.jar:$CLASSPATH

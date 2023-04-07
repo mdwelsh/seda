@@ -1,0 +1,137 @@
+This directory contains an HTTP load generator that can be used to
+measure the performance of Haboob and other Web servers. This is the
+load generator used in the paper "SEDA: An Architecture for
+Well-Conditioned, Scalable Internet Services" (M. Welsh et al, Proc.
+SOSP '01), found at
+	http://www.cs.berkeley.edu/~mdw/proj/seda
+
+There are three versions of the load generator:
+
+  HttpLoad.java: Uses asynchronous sockets (through the Sandstorm
+    aSockets library) and one thread to simulate many clients.
+
+  HttpLoadThreaded.java: Uses a thread per simulated client. May not be
+    as scalable as HttpLoad.java for this reason, but is much simpler.
+
+  tls/HttpLoadTLS.java: Uses asynchronous SSL connections (through the
+    Sandstorm aTLS library). Used for testing the performance of TLS/SSL
+    connections.
+
+I recommend using HttpLoad.java, but HttpLoadThreaded.java is a better
+reference for understanding the benchmark.
+
+The benchmark implements a variant on the static file load from
+SPECweb99, accessing files according to a request distribution specified
+by the SPECweb99 rules. See
+	http://www.specbench.org/osg/web99/docs/whitepaper.html
+for details on the SPECweb99 benchmark.
+
+To run the benchmark, type
+  java HttpLoad <baseurl> <numclients> <reqdelay> <connload> <numruns>
+where:
+
+  <baseurl> is the base URL of the Web server to test, e.g.,
+      http://foo.bar.com:8080/some/directory
+
+  <numclients> is the number of clients to emulate. Based on your OS
+      and JVM there may be a practical limit on the number of clients
+      that you can emulate with a single JVM. For HttpLoad, 1024 clients
+      is reasonable if file descriptor limits are set appropriately. For
+      HttpLoadThreaded, I usually run 100 clients or less. If you need
+      to emulate more clients, you should run multiple copies of the
+      load generator on different machines. The 'scripts' directory
+      (see below) has scripts to help you do this.
+  
+  <reqdelay> Delay in milliseconds between requests
+
+  <connload> Total "connection load" as defined by SPECweb99 rules.
+      This determines the number of directories that the clients will
+      attempt to access. I use a load of 1000, which corresponds to 680
+      directories or 3.31 GB of files.
+
+  <numruns> Number of benchmark iterations to run. Each iteration is 5
+      seconds. I usually run about 100 runs, maybe 20 if there is a
+      small number of clients.
+
+At the top of the .java files you can set various parameters that affect
+how the benchmark operates; see the code for details. One interesting
+setting is
+    private static final String BOTTLENECK_URL = "/bottleneck";
+    private static final double BOTTLENECK_FREQ = 0.0;
+
+Setting BOTTLENECK_URL to a URL on your Web server will cause the
+clients to access that URL for a fraction of the requests corresponding
+to BOTTLENECK_FREQ. For example, if BOTTLENECK_FREQ is 1.0, then
+BOTTLENECK_URL will always be accessed; if BOTTLENECK_FREQ is 0.5, it
+will be accessed half of the time (the other half of requests will
+correspond to the SPECweb99 pages). 
+
+This is a way to test a "bottleneck" on your Web server, such as a CGI
+script. You may also use it to cause the clients to always access the
+same URL, by setting BOTTLENECK_FREQ to 1.0 and BOTTLENECK_URL to
+whatever you want them to access.
+
+The 'scripts' directory contains some scripts for running the benchmark
+client across some number of machines, collecting the data, and
+generating statistics from it. To run the client on many machines, we
+use the 'gexec' tool from the UC Berkeley Millennium
+project. This can be obtained from
+	http://ganglia.sourceforge.net/
+If you look at 'run-client.pl' you will see it running the 'safe-gexec'
+command. 'safe-gexec' is a wrapper to the 'gexec' tool. 'gexec' forks 
+the load generator on many machines in a cluster, and collects the 
+stdout/stderr output of those commands. Each line of output from gexec
+is prepended with the node number on which the program is running,
+so the output looks like:
+     0 Some output from node 0 here...
+     1 Some output from node 1 here...  
+     0 Some output from node 0 here...
+     2 Some output from node 2 here...
+And so forth. The data-processing scripts assume this format for the
+output, so if you don't have gexec installed, you can use 'fake-gexec'
+which simply forks the load generator on this node and prepends "0 " to 
+each line. Alternately, you can easily wrap your own remote-execution
+tool (even ssh) in a script that outputs the link
+
+To use the driver and data processing scripts, be sure that the
+'scripts' directory is on your PATH - this is important as they invoke
+one another.
+
+    do-run.pl: The main driver script that performs a benchmark run with
+      an increasing number of nodes and clients per node. Outputs data
+      to a log directory given on the command line. You would run this
+      like:
+       		do-run.pl LOGDIR
+      To output the raw data from the benchmark run to files in LOGDIR.
+
+    run-client.pl: Performs a particular benchmark run with a particular
+      number of nodes and clients per node. Invoked by do-run.pl.
+      Edit this file to set parameters such as the server URL, request
+      delay, and so forth. Set $USE_FAKE_REXEC = 1 to use fake-gexec
+      instead of gexec to do "remote" execution.
+ 
+    process-log.pl: Processes an entire log directory, generating
+      statistics about the run such as average response time, throughput,
+      and so forth. You would run this like
+      		process-log.pl LOGDIR
+      Outputs one line for each run (number of nodes and number of
+      clients per node). The processed data is self-explanatory and
+      contains a detailed comment explaining its own format. Invokes 
+      various other scripts to perform the data processing; see 
+      process-log.pl for details.
+
+When running the benchmark, I strongly recommend that you run the
+clients on unloaded machines and save the output of the benchmarks to a
+LOCAL DISK, *not* an NFS filesystem. The load generators can be very
+verbose (dumping detailed statistics about the run every 5 seconds) and
+writing this data over NFS not only consumes considerable network
+bandwidth but also makes the run go MUCH more slowly. Also, processing
+the statistics can be quite time-consuming, taking several minutes per
+run if you are accessing everything over NFS. 
+
+The best way to understand these tools is to read do-run.pl and
+process-log.pl and go from there. Please let me know if you have
+questions.
+
+Matt Welsh, mdw@cs.berkeley.edu
+

@@ -1,0 +1,47 @@
+# Generated automatically from Makefile.in by configure.
+
+NODOCS = true
+
+BASE = $(shell pwd | sed 's@\(.*\)/seda.*$$@\1/seda@' )
+JAVAHOME = @JAVA_HOME@
+
+SHAREDLINK=$(BASE)/../../lib/libNBIO.so
+
+all: libNBIO.so $(SHAREDLINK)
+
+ifeq (@PLATFORM@, linux) 
+  ARCHFLAGS = -Dlinux 
+  JNIINCLUDE = -I$(JAVAHOME)/include -I$(JAVAHOME)/include/genunix -I$(JAVAHOME)/include/linux
+endif
+
+ifeq (@PLATFORM@, solaris)
+  ARCHFLAGS = -DSOLARIS
+  JNIINCLUDE = -I$(JAVAHOME)/include -I$(JAVAHOME)/include/genunix -I$(JAVAHOME)/include/solaris
+endif
+
+INCLUDES = $(JNIINCLUDE) -I./include 
+
+CC = gcc
+CFLAGS = -O2 -fPIC -Wall $(INCLUDES) $(ARCHFLAGS) @DEFS@
+CLIBS = 
+
+COBJS = nbio.o
+
+nbio.c: mdw-btree.h
+
+libNBIO.so: $(COBJS)
+	echo "$(CC) -shared $(CFLAGS) $(COBJS) -o libNBIO.so $(CLIBS)"
+	@$(CC) -shared $(CFLAGS) $(COBJS) -o libNBIO.so $(CLIBS)
+
+$(SHAREDLINK): libNBIO.so
+	echo "rm -f $@"
+	@rm -f $@
+	echo "cp `pwd`/libNBIO.so $@"
+	@cp `pwd`/libNBIO.so $@
+	#echo "ln -sf `pwd`/libNBIO.so $@"
+	#@ln -sf `pwd`/libNBIO.so $@
+
+clean:
+	@rm -f $(COBJS) libNBIO.so
+	@rm -f $(SHAREDLINK)
+

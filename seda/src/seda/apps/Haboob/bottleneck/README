@@ -1,0 +1,8 @@
+Details on Bottleneck calibration on mm56
+15 July 2001
+
+Haboob: File read, 50 runs, 50 sums, reading 100 bytes from file: 
+  41-42 ms 
+
+Flash: File read, 700 runs, 50 sums, reading 100 bytes from file:
+  41-42 ms

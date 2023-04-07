@@ -1,0 +1,182 @@
+#!/usr/bin/perl
+
+# Display the data in a Sandstorm profile tracefile.
+#
+# Matt Welsh, mdw@cs.berkeley.edu
+
+use Getopt::Std;
+
+sub usage {
+  print STDERR "Usage: ssprofile-graph [options] <profile>\n";
+  print STDERR " Options:\n";
+  print STDERR "\t-m\t Only display memory usage information\n";
+  print STDERR "\t-g <file>\t Dump Gnuplot commands to <file>\n";
+  print STDERR "\t-s\t Show titles for socket connections\n";
+  print STDERR "\t-l <style>\t Style for gnuplot lines: l, lp, etc.\n";
+  print STDERR "\t-o <key>\t Only display profiles with names matching <key>\n";
+  print STDERR "\t-h <key>\t Highlight profiles with names matching <key>\n";
+  print STDERR "\t-r <key>\t Place profiles with names matching <key> on right axis\n";
+  print STDERR "\t-e <key>\t Exclude profiles with names matching <key>\n";
+  print STDERR "\t-x <start:finish>\t Set x range\n";
+  print STDERR "\t-y <start:finish>\t Set y range\n";
+  print STDERR "\t-z <start:finish>\t Set y2 (right axis) range\n";
+  exit -1;
+}
+
+if ($#ARGV < 0) { &usage; }
+
+$fname = $ARGV[$#ARGV];
+if (!getopts('mg:sh:o:e:x:y:z:r:l:')) { &usage; }
+if ($opt_m) {
+  $MEMONLY = 1;
+}
+if ($opt_g) {
+  $GNUPLOT_FILE = $opt_g;
+}
+if ($opt_s) {
+  $SOCKETITLES = 1;
+}
+if ($opt_o) {
+  $ONLYKEY = $opt_o;
+}
+if ($opt_h) {
+  $HIGHLIGHTKEY = $opt_h;
+}
+if ($opt_e) {
+  $EXCLUDEKEY = $opt_e;
+}
+if ($opt_r) {
+  $RIGHTKEY = $opt_r;
+}
+if ($opt_x) {
+  $XRANGE = "[$opt_x]";
+}
+if ($opt_y) {
+  $YRANGE = "[$opt_y]";
+  if (!$XRANGE) { $XRANGE = "[]"; }
+}
+if ($opt_z) {
+  $Y2RANGE = "[$opt_z]";
+  if (!$XRANGE) { $XRANGE = "[]"; }
+}
+if ($opt_l) {
+  $STYLE = $opt_l;
+} else {
+  $STYLE = "lines";
+}
+
+open(IN, "$fname") || die "Can't open $fname\n";
+#open(OUT, ">.queuegraph-data") || die "Can't open .queuegraph-data\n";
+
+while (<IN>) {
+
+  if (/# Sample delay (\d+) msec/) {
+    $SAMPLE_DELAY = $1;
+  }
+
+  if (/# Profile started at (.*)/) {
+    $START_TIME = $1;
+  }
+
+  # New style profile
+  if (/# Registered (\d+) (.*)/) {
+    $queuename[$1] = $2;
+    $column[$1] = ($1 * 2) + 6;
+  }
+  # Old style profile
+  if (/# Registered queue (\d+) (.*)/) {
+    $queuename[$1] = $2;
+    $column[$1] = ($1 * 2) + 6;
+  }
+#  if (/totalmem\(kb\) (\d+) freemem\(kb\) (\d+) (.*)/) {
+#    $totalmem = $1;
+#    $freemem = $2;
+#    print OUT "$totalmem $freemem ";
+#    if (!$MEMONLY) {
+#      $rest = $3;
+#      @vals = split(/ /, $rest);
+#      for ($j = 1; $j <= $#vals; $j+=2) {
+#        print OUT "$vals[$j] ";
+#      }
+#    }
+#    print OUT "\n";
+#  }
+}
+close IN;
+#close OUT;
+
+#$SIG{INT} = sub { `rm .queuegraph; rm .queuegraph-data`; exit 0; };
+
+open(GRAPH, ">.queuegraph") || die "Can't open .queuegraph\n";
+print GRAPH "set title 'Sandstorm profile started at $START_TIME'\n";
+print GRAPH "set xlabel 'Time ($SAMPLE_DELAY ms intervals)'\n";
+print GRAPH "set ylabel 'Queue size\n";
+print GRAPH "set y2tics\n"; 
+if (!$RIGHTKEY) { 
+  print GRAPH "set y2label 'Kilobytes\n";
+  print GRAPH "set y2tics 4096\n"; 
+} else {
+  print GRAPH "set y2label '$RIGHTKEY'\n";
+}
+if ($Y2RANGE) {
+  print GRAPH "set y2range $Y2RANGE\n";
+}
+print GRAPH "set grid noxtics ytics noy2tics\n";
+
+print GRAPH "plot $XRANGE$YRANGE\\\n";
+
+if (!$MEMONLY) {
+  $first = 1;
+title:
+  for ($n = 0; $n <= $#queuename; $n++) {
+    $axis = "";
+    $col = $column[$n];
+    $title = $queuename[$n];
+
+    if ($ONLYKEY) {
+      if (!($title =~ /$ONLYKEY/)) { next title; }
+    }
+    if ($EXCLUDEKEY) {
+      if ($title =~ /$EXCLUDEKEY/) { next title; }
+    }
+
+    if ((!$SOCKETTITLES) && ($title =~ /ATcpConnection/)) { $title = ""; }
+
+    $lw = 1;
+    if ($HIGHLIGHTKEY) {
+      if ($title =~ /$HIGHLIGHTKEY/) { $lw = 3; }
+    }
+    if ($RIGHTKEY) {
+      if ($title =~ /$RIGHTKEY/) { 
+	$title = "RIGHT: $title";
+	$axis = "axes x1y2"; 
+      }
+    }
+
+    if (!$first) {
+      print GRAPH ", \\\n";
+    } else {
+      $first = 0;
+    }
+    print GRAPH "\"$fname\" using $col $axis t '[$col] $title' with $STYLE lw $lw";
+  }
+}
+
+if (!$RIGHTKEY) {
+  print GRAPH ", \\\n\"$fname\" using 2 axes x1y2 t 'Heap size' with lines lt 1 lw 4\n";
+} else {
+  print GRAPH "\n";
+}
+
+
+#print GRAPH "\".queuegraph-data\" using 2 axes x1y2 with lines lw 2\n";
+print GRAPH "pause -1 'Press any key to exit...'\n";
+
+close GRAPH;
+
+if ($GNUPLOT_FILE) {
+  `mv .queuegraph $GNUPLOT_FILE`;
+} else {
+  `gnuplot .queuegraph`;
+  `rm .queuegraph`;
+}

@@ -1,0 +1,72 @@
+=============================================================================
+Results between mm44 and mm56
+NBIO with poll(2), Linux 2.4.18
+22 July 2002
+
+Pingpong - 4 byte messages
+
+# size   time(ms)        rtt(usec)       mbps
+4        76      760.0   0.042105263157894736
+4        68      680.0   0.047058823529411764
+4        75      750.0   0.042666666666666665
+4        66      660.0   0.048484848484848485
+
+Bandwidth - 8192 bytes, 20 pkts/burst
+
+2000 iterations in 1041 milliseconds = 1921.2295869356387 iterations per second
+        520.5 usec RTT, 125.90970220941402 mbps bandwidth
+2000 iterations in 1072 milliseconds = 1865.6716417910447 iterations per second
+        536.0 usec RTT, 122.26865671641791 mbps bandwidth
+2000 iterations in 1048 milliseconds = 1908.3969465648856 iterations per second
+        524.0 usec RTT, 125.06870229007633 mbps bandwidth
+2000 iterations in 939 milliseconds = 2129.9254526091586 iterations per second
+        469.5 usec RTT, 139.58679446219384 mbps bandwidth
+
+=============================================================================
+Results between mm44 and mm56
+NBIO with poll(2), Linux 2.4.18
+30 July 2002
+
+Pingpong - 4 byte messages
+
+# size   time(ms)        rtt(usec)       mbps
+4        213     2130.0  0.015023474178403756
+4        118     1180.0  0.02711864406779661
+4        128     1280.0  0.025
+4        132     1320.0  0.024242424242424242
+
+Bandwidth - 8192 bytes, 20 pkts/burst
+
+2000 iterations in 732 milliseconds = 2732.24043715847 iterations per second
+        366.0 usec RTT, 179.0601092896175 mbps bandwidth
+2000 iterations in 751 milliseconds = 2663.115845539281 iterations per second
+        375.5 usec RTT, 174.52996005326233 mbps bandwidth
+2000 iterations in 731 milliseconds = 2735.978112175103 iterations per second
+        365.5 usec RTT, 179.30506155950752 mbps bandwidth
+2000 iterations in 738 milliseconds = 2710.027100271003 iterations per second
+
+(I assume the discrepancy from the results above has to do with network
+traffic.)
+
+=============================================================================
+Results between mm44 and mm56
+NIO, Linux 2.4.18
+30 July 2002
+
+Pingpong - 4 byte messages
+
+# size   time(ms)        rtt(usec)       mbps
+4        266     2660.0  0.012030075187969926
+4        130     1300.0  0.024615384615384615
+4        151     1510.0  0.02119205298013245
+4        154     1540.0  0.02077922077922078
+
+Bandwidth - 8192 bytes, 20 pkts/burst
+
+2000 iterations in 2698 milliseconds = 741.2898443291327 iterations per second
+        1349.0 usec RTT, 48.58117123795404 mbps bandwidth
+2000 iterations in 2701 milliseconds = 740.4664938911513 iterations per second
+        1350.5 usec RTT, 48.5272121436505 mbps bandwidth
+2000 iterations in 2705 milliseconds = 739.3715341959335 iterations per second
+        1352.5 usec RTT, 48.45545286506469 mbps bandwidth
+

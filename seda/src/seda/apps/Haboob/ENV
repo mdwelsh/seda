@@ -1,0 +1,7 @@
+# Set up CLASSPATH for running Haboob web server
+
+JYTHON_HOME=$HOME/src/download/jython-2.1
+
+export CLASSPATH=$CLASSPATH:$JYTHON_HOME/jython.jar:`pwd`/hdapi/pytec/test/pytec-compiled.jar
+export PATH=$PATH:$JYTHON_HOME
+

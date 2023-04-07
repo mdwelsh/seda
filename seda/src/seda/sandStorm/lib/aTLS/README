@@ -1,0 +1,253 @@
+aTLS: An asynchronous TLS/SSL Implementation for SEDA
+Release v1.1, 12 July 2002
+By Dennis Chi (denchi@uclink4.berkeley.edu) 
+and Matt Welsh (mdw@cs.berkeley.edu)
+
+This is an implementation of TLS v1.0 and SSL v3.0 for Sandstorm. This
+library embodies an asynchronous, nonblocking implementation of TLS/SSL,
+in Java, that allows scalable servers to be built using the Sandstorm 
+SEDA-based Internet services environment. The key feature of this library 
+is that it is nonblocking: it does not require a separate thread to be 
+devoted to each connection. For more information on the SEDA approach to
+building scalable servers, please see:
+  http://www.cs.berkeley.edu/~mdw/proj/seda
+
+This library is based on PureTLS (http://rtfm.com/puretls), a Java-based TLS 
+implementation. PureTLS in turn requires Cryptix (http://www.cryptix.org)
+to implement a number of the cryptography functions. 
+
+COMPILATION:
+
+You have the option of downloading and compiling Cryptix and PureTLS
+yourself, or using the precompiled .jar files included in this release.
+Note that the precompiled .jar files may not represent the latest
+versions of these packages, but, we have verified that they work with
+aTLS.
+
+If you want to use the precompiled .jar files, place the following
+two files on your CLASSPATH:
+   	cryptix.jar
+	puretls-atls.jar
+
+If you want to install and compile the packages yourself:
+
+1) First, obtain Cryptix and PureTLS from the above sites.
+   Place the following directories on your CLASSPATH:
+   
+	/path/to/cryptix/src
+	/path/topuretls/src
+
+   That is, whereever you have Cryptix and PureTLS installed.
+
+2) Patch the PureTLS code with the file puretls-atls.PATCH, found in this
+   directory. You should be able to cd to your PureTLS installation
+   directory and type:
+   	
+	patch -p1 < /path/to/aTLS/puretls-atls.PATCH
+
+   replacing "/path/to/aTLS" to the location of the aTLS directory.
+
+3) Compile Cryptix and PureTLS. Because these packages don't include
+   Makefiles, This probably involves something like:
+	cd /path/to/cryptix/src
+	find . -name "*.java" | xargs javac 
+	cd /path/to/puretls/src
+	./build.sh
+   Note that you may get some compilation warnings for PureTLS, 
+   i.e. that it is unable to find the gnu.getopt package. These can be
+   safely ignored since that package is only used in test programs not
+   used by aTLS.
+
+To compile the aTLS code, type 'make' in this directory.
+
+CONFIGURATION:
+
+aTLS requires that you have installed several files that contain
+certificates. These files are:
+  * root.pem   -- A root certificate (used by clients and servers)
+  * server.pem -- A server certificate (used on servers only)
+  * client.pem -- A client certificate (used on clients only)
+  * random.pem -- Data used to seed random number generator
+                  (used on clients only)
+
+Examples of these files are found in the 'keys' directory and were
+taken from the PureTLS code tree. The certificates in the example files 
+have a password of "password". Unfortunately PureTLS comes with very 
+little documentation so it is unclear what is involved to generate 
+your own certificate files. (If you have information on this, please 
+contact mdw@cs.berkeley.edu.)
+
+The 'random.pem' file is a random seed file required only by aTLS
+clients. This file will be created if it does not exist, and may be
+overwritten. Therefore if you are running experiments with many clients,
+you probably want this file to be specified on a per-client basis,
+rather than having multiple clients share the same random.pem file (say
+on an NFS filesystem). In the examples below, random.pem is stored in /tmp.
+
+There are two ways to configure the location of these files: aTLS server 
+code uses a Sandstorm configuration file, and the aTLS client code uses
+a programmatic interface.
+
+If you are running a Sandstorm server using aTLS, then you can simply
+add a stanza to the <global> section of the file defining the location
+of each of these files. For example:
+
+<sandstorm>
+  <global>
+    # aTLS Server configuration
+    <aTLS>
+      rootfile /some/path/aTLS/keys/root.pem
+      keyfile /some/path/aTLS/keys/server.pem
+      password password
+    </aTLS>
+  </global>
+</sandstorm>
+
+(If this doesn't make sense to you, please see the Sandstorm documentation
+at http://www.cs.berkeley.edu/~mdw/proj/seda.)
+
+When using the aTLS client code, you can specify the locations of the
+require files programmatically:
+
+    /* aTLS Client configuration */
+
+    String rootfile = "/some/path/aTLS/keys/root.pem";
+    String keyfile = "/some/path/aTLS/keys/client.pem";
+    /* Will be overwritten! */
+    String randomfile = "/tmp/random.pem";
+    String password = "password";
+
+    /* Must be called before creating any aTLSClientSocket objects. */
+    aTLSClientSocket.initialize(rootfile, keyfile, randomfile, password);
+
+    aTLSClientSocket sock = new aTLSClientSocket(address, port, eventQ);
+
+If your client application is configured using a Sandstorm configuration
+file, you may of course specify these keys in the config file as
+described above. 
+
+TESTING THE CONFIGURATION:
+
+The aTLSnew/test directory contains a very simple client-server test
+program that can help you to see if the installation is working.
+The server can be invoked with:
+   sandstorm test-tls-server.cfg
+in the 'test' directory. It creates a TLS server socket on port 8096
+that implements a simple Web server, sending back a canned HTML reply to
+any HTTP request. To test it you can point your Web browser to the URL:
+   https://localhost:8096/
+
+*NOTE!* It is very important that you specify 'https://', *not* 'http://'
+in the URL. Without 'https' your Web browser will attempt to connect
+using standard HTTP and nothing will happen.
+
+After some time, you will get a simple Web page starting with:
+
+  aTLS Web Server Response
+
+  Hello, this is the aTLS test web server.
+
+Before this comes up you will probably see a bunch of dialog boxes
+explaining that the server certificate has expired and asking you to
+verify the new certificate - just keep clicking "continue". 
+
+There is a LONG delay the first time you access the secure web page - 
+see "PERFORMANCE NOTES" below.
+
+You can also test the simple Web server using the client test program,
+which can be invoked by running
+  sandstorm test-tls-client.cfg
+from the 'test' directory. You will see the client creating a TLS client
+socket and sending a simple HTTP request to the server. You can tell it
+all worked if you see the line:
+
+  </pre><p>And, by the way, your request (and this reply) were encrypted
+  using TLS! Glad to be of service today.</body></html>
+
+at the end of the output from the client.
+
+USAGE:
+
+If you are familiar to programming the Sandstorm 'aSocket' library,
+using aTLS is very easy. All of the programming interfaces are
+documented in Javadoc in the source code. 
+
+Note that since the TLS classes extend the corresponding aSocket classes, 
+you can easily use TLS sockets in any context where regular aSockets are 
+used. For example, to layer an HTTP server on top of a TLS server, all
+that's required is to substitute an aTLSServerSocket whereveer an 
+ATcpServerSocket was used before.
+
+To create a TLS server socket, instantiate an aTLSServerSocket object, 
+specifying the Sandstorm ManagerIF, SinkIF where you want to receive
+notifications, and the TCP port on which you wish to listen. When a
+client connection arrives, an aTLSConnection object is pushed onto the
+corresponding queue. 
+
+To create a TLS client socket, instantiate an aTLSClientSocket object,
+specifying the address or hostname of the server, the TCP port, and a
+SinkIF on which you wish to receive notification of connection
+establishment (an aTLSConnection object).
+
+aTLSConnection corresponds to an established TLS connection (either
+incoming or outgoing). Enqueueing a BufferElement onto the
+aTLSConnection causes that data to be encrypted and sent to the network.
+When new data arrives on the connection, an ATcpInPacket will be
+enqueued on the sinkIF associated with the connection from a previous
+call to aTLSConnection.startReader(). 
+
+PERFORMANCE NOTES:
+
+Note that the first time you use the TLS code in your application there
+will be an extraordinarily long delay. This is due to the JIT compiler
+compiling all of the aTLS, PureTLS, and Cryptix classes associated with
+TLS/SSL. Don't be dismayed by the performance of the initial
+connections; after some usage you should find the performance to be
+quite acceptable.
+
+Regardless, TLS and SSL are VERY CPU-intensive and this implementation
+is entirely in Java with no support for native code or hardware
+acceleration. Therefore the performance is going to be significantly
+slower than using traditional, non-encrypted sockets. We don't believe
+that this performance is significantly worse than other SSL/TLS
+implementations. However, our focus here has been to produce a viable
+nonblocking SSL/TLS implementation for use in the SEDA project, not to
+concern ourselves with achieving the highest performance possible. 
+
+We'd be very interested in hearing from you about benchmark results (say,
+comparing aTLS with other SSL implementations such as that in Apache).
+A nice aspect of aTLS is that it can scale to a VERY large number of
+socket connections (in the thousands), unlike servers like Apache which
+are limited by the number of processes/threads that the system can support.
+
+BUGS, SUPPORT, OTHER INFORMATION:
+
+The best way to get support on this software is to join the seda- users 
+mailing list, instructions for which are found at 
+  http://www.cs.berkeley.edu/~mdw/proj/seda. 
+
+LICENSE:
+
+This is open source software covered by the following copyright license.
+The PureTLS and Cryptix libraries (included in this release) are covered
+by their own respective licenses. 
+
+  Copyright (c) 2002 by The Regents of the University of California. 
+  All rights reserved.
+ 
+  Permission to use, copy, modify, and distribute this software and its
+  documentation for any purpose, without fee, and without written agreement is
+  hereby granted, provided that the above copyright notice and the following
+  two paragraphs appear in all copies of this software.
+ 
+  IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR
+  DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES ARISING OUT
+  OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF THE UNIVERSITY OF
+  CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ 
+  THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+  INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
+  AND FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE PROVIDED HEREUNDER IS
+  ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION TO
+  PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
+

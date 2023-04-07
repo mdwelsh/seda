@@ -1,0 +1,56 @@
+HDAPI v1.0, by Eric Wagner <eric@xcf.berkeley.edu>
+  and Matt Welsh <mdw@cs.berkeley.edu>
+
+HDAPI is the Haboob Dynamic API, a simple API supporting the generation
+of dynamic Web pages. Using HDAPI is simple; simply write a Java
+class that implements 'httpRequestHandlerIF', in this directory. This
+interface has one method:
+	httpResponse handleRequest(httpRequest request);
+that takes a single HTTP request and returns a response.
+
+See the 'test' directory for examples.
+
+To use HDAPI, you must include the following stanza in the Haboob
+configuration file:
+  
+  <stages>
+
+    <DynamicHttp>
+    class ninja2.personal.mdw.apps.Haboob.hdapi.DynamicHttp
+    <initargs>
+      conffile hdapi.cfg
+    </initargs>
+    </DynamicHttp>
+
+  </stages>
+
+The file 'hdapi.cfg' contains the mapping from URLs to Java class names
+implementing the HDAPI interface. For example:
+
+  /test ninja2.personal.mdw.apps.Haboob.hdapi.test.Test
+
+assigns the URL "/test" to the HDAPI class 'Test'.
+
+Note that more than one URL can map onto the same HDAPI class; the HDAPI
+class can then look at the URL (using httpRequest.getURL()) to determine
+which action to take.
+
+PyTeC: The Python HDAPI Interface
+---------------------------------
+
+PyTeC allows HDAPI classes to be implemented as HTML templates with code
+embedded in the Python language. See pytec/test for examples and a
+Makefile that will do the build process. The script pytec.py compiles a
+.pytec source file into Python code, which is then compiled to a Java
+class using jythonc. 
+
+To use PyTeC, you need to install Jython, a Java implementaton of
+Python, available at http://www.jython.org. You also need to install
+Python v2.0 or later -- at Berkeley this is installed as /usr/mill/pkg/python2. 
+
+Be sure that Python2.0 is on your PATH. Also place 'jython.jar' on your
+CLASSPATH before running Haboob. In pytec/test you will see a sample
+PyTeC page that can be compiled using the provided Makefile. It produces
+the file pytec-compiled.jar, which also must be on your CLASSPATH before
+running Haboob.
+

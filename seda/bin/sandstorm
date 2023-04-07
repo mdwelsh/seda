@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# Front-end script to run Sandstorm
+
+java -ms128M -mx1024M seda.sandStorm.main.Main $*

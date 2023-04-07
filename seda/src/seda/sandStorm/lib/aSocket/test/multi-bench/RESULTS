@@ -1,0 +1,43 @@
+Benchmark results between mm44 and mm56
+NBIO with poll(2), Linux 2.4.18
+July 22, 2002
+
+Send: 8192 byte messages, 20 msgs/burst
+Recv: 32 byte messages, 1 msg/burst
+
+1 client
+
+Completed: 130029592 bytes in 5000 msec
+        198.40941162109374 mbps bandwidth
+        1 connections
+        1 active connections
+        794.0 avg bursts/conn, stddev NaN
+        0 connections with no bursts
+
+100 clients
+
+Completed: 159920376 bytes in 5000 msec
+        244.01912841796874 mbps bandwidth
+        100 connections
+        100 active connections
+        9.0 avg bursts/conn, stddev 0.7316785737969477
+        0 connections with no bursts
+
+200 clients
+
+Completed: 152453120 bytes in 5000 msec
+        232.625 mbps bandwidth
+        200 connections
+        200 active connections
+        4.0 avg bursts/conn, stddev 0.7829848827615804
+        0 connections with no bursts
+
+500 clients
+
+Completed: 151552000 bytes in 5000 msec
+        231.25 mbps bandwidth
+        500 connections
+        500 active connections
+        1.0 avg bursts/conn, stddev 0.9261292732992104
+        0 connections with no bursts
+

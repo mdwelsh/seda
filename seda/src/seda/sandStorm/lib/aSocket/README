@@ -1,0 +1,14 @@
+This library provides a SEDA-based asynchronous sockets layer, using the 
+Sandstorm platform. It may be used by itself, without the rest of the 
+Sandstorm APIs, simply by including 
+
+	import seda.sandStorm.api.*;
+	import seda.sandStorm.core.*;
+	import seda.sandStorm.lib.aSocket.*;
+
+in your Java application. See ATcpClientSocket, ATcpServerSocket, and 
+ATcpConnection for the basic APIs. 
+
+Let me know if you have any questions!
+
+Matt Welsh <mdw@cs.berkeley.edu>

@@ -1,0 +1,4 @@
+#!/bin/sh
+
+echo "HOSTNAME: `/bin/hostname`"
+java MultiServer $*

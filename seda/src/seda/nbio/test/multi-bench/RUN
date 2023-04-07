@@ -1,0 +1,12 @@
+#!/usr/bin/perl
+
+`killall -9 java`;
+$hostname = `/bin/hostname`; chop $hostname;
+print STDERR "Hostname: $hostname\n";
+
+# Sleep for up to 10 seconds
+$sleep = rand 10;
+select(undef, undef, undef, $sleep);
+
+print STDERR "Running command: @ARGV\n";
+exec @ARGV;

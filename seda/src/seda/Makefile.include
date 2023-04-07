@@ -1,0 +1,109 @@
+#-*-makefile-*-
+######################################################################
+# 
+# Contains the shared make rules for the seda source code tree.  The
+# SUBDIRS variable should be defined in the file that includes this
+# file.
+#
+# gmake TARGET DESCRIPTIONS
+#
+#    all 
+#        build all source files under the current directory.  This 
+#        is the default
+#
+# NOTE: this Makefile requires GNU make, as well as a number of 
+#       standard UNIX shell tools.  This Makefile MAY work under
+#       Windows with the cygwin tools, but it has not been tested.
+#
+######################################################################
+
+SRC = $(wildcard *.java)
+JAVA = $(SRC)
+CLASSES = $(JAVA:.java=.class)
+
+all: here subdirs 
+
+# choose whether or not to use the clean-ed up make output
+ifeq ($(VERBOSE_MAKE)_x, _x) 
+SILENT_MAKE = -s
+endif
+
+
+# figure out useful variables
+PWD = $(shell pwd | sed 's!.*seda!seda!g')
+PACKAGE = $(shell echo $(PWD) | sed 's!\/!\.!g') 
+
+ABS_BASE = $(shell pwd | sed 's@\(.*\)/seda.*$$@\1/seda@' )
+REL_BASE = $(shell echo $(PWD) | sed 's!/[^/]*!/..!g' | sed 's!seda!.!')
+
+# set compiler command
+ifeq ($(JAVAC)_x, _x)
+JAVAC = javac
+endif
+
+# general rule for java files
+%.class: %.java
+	@if [ "x$(SILENT_MAKE)" = "x-s" ]; then \
+		echo "    $(JAVAC) $<"; \
+	else \
+		echo "$(JAVAC) $<"; \
+	fi
+	@$(JAVAC) $<
+
+
+
+ifeq ($(SUBDIRS)_x, _x)
+
+subdirs: here
+
+subdirs-clean: here-clean
+
+else
+subdirs: here
+	@for i in $(SUBDIRS); do \
+		if [ -d $$i ]; then \
+			if [ -f $$i/Makefile ]; then \
+				$(MAKE) $(SILENT_MAKE) -C $$i; \
+			else \
+				echo "***" no Makefile in directory: $(PWD)/$$i; \
+			fi \
+		else \
+			echo "***" skipping missing directory: $(PWD)/$$i; \
+		fi; \
+	done
+
+subdirs-clean: here-clean
+	@for i in $(SUBDIRS); do \
+		if [ -d $$i ]; then \
+			if [ -f $$i/Makefile ]; then \
+				$(MAKE) $(SILENT_MAKE) -C $$i clean; \
+			else \
+				echo "***" no Makefile in directory: $(PWD)/$$i; \
+			fi \
+		else \
+			echo "***" skipping missing directory: $$i; \
+		fi; \
+	done
+
+endif
+
+here: printdir $(JAVA) $(CLASSES) $(OTHER_TARGETS) FORCE
+
+printdir:
+	@if [ "x$(SILENT_MAKE)" = "x-s" ]; then \
+		echo "... $(PWD)"; \
+	fi
+
+here-clean: FORCE
+	@rm -f *.class *~ javacore*.txt
+	@echo "cleaning $(PWD)" 
+
+clean: here-clean subdirs-clean $(OTHER_CLEAN)
+
+# some phony targets - FORCE forces a command to be run on all dependencies,
+# and .PHONY prevents badness if a phony target coincides with a filename
+
+FORCE:
+
+.PHONY: all $(SUBDIRS) $(SUBDIRSCLEAN) clean
+

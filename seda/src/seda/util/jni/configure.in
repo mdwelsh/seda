@@ -1,0 +1,34 @@
+AC_INIT(util.c)
+AC_CANONICAL_HOST
+
+echo "HOST OS IS $host_os"
+echo "HOST CPU IS $host_cpu"
+
+case $host_os in
+    solaris*)   PLATFORM=solaris;;
+    linux-*)    PLATFORM=linux;;
+esac
+AC_SUBST(PLATFORM)
+
+# Determine JDK installation directory
+AC_MSG_CHECKING(Installation path of JDK)
+AC_ARG_WITH(jdk,
+        [  --with-jdk              JDK installation directory ],
+        [ ac_cv_java_home=${with_jdk} ],
+        [ IFS="${IFS=   }"; ac_save_ifs="$IFS"; IFS=":"
+  ac_dummy="$PATH"
+  for ac_dir in $ac_dummy; do
+    test -z "$ac_dir" && ac_dir=.
+    if test -f $ac_dir/java; then
+      ac_cv_prog_java="$ac_dir/java"
+      break
+    fi
+  done
+  IFS="$ac_save_ifs"
+  ac_cv_java_home=`echo $ac_cv_prog_java | sed 's+/bin/java$++'` ])
+AC_MSG_RESULT($ac_cv_java_home)
+JAVA_HOME=$ac_cv_java_home
+AC_SUBST(JAVA_HOME)
+
+AC_OUTPUT(Makefile.here)
+

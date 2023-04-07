@@ -1,0 +1,83 @@
+Testing between mm56 and mm44
+22 July 2002
+
+----------------------------------------------------------------------------
+Using blocking sockets:
+----------------------------------------------------------------------------
+
+TCPBench -s 1000 msgs, 4 bytes each:
+
+Starting pingpong test: message size 4, num messages 1000, nonblocking=false, useselect=false
+Pingpong test:
+        1000 4-byte messages in 405000.0 usec, or 405.0 usec/iter.
+        0.07535204475308642 megabits/sec.
+Starting bandwidth test: message size 4, num messages 1000
+Bandwidth test:
+        1000 4-byte messages in 100000.0 usec, or 100.0 usec/iter.
+        0.30517578125 megabits/sec.
+
+TCPBench -s 1000 msgs, 8192 bytes each:
+
+Starting pingpong test: message size 8192, num messages 1000, nonblocking=false, useselect=false
+Pingpong test:
+        1000 8192-byte messages in 726000.0 usec, or 726.0 usec/iter.
+        86.08815426997245 megabits/sec.
+Starting bandwidth test: message size 8192, num messages 1000
+Bandwidth test:
+        1000 8192-byte messages in 179000.0 usec, or 179.0 usec/iter.
+        349.16201117318434 megabits/sec.
+
+----------------------------------------------------------------------------
+Using nonblocking sockets:
+----------------------------------------------------------------------------
+
+TCPBench -s 1000 msgs, 4 bytes each:
+
+Starting pingpong test: message size 4, num messages 1000, nonblocking=true, useselect=false
+Pingpong test:
+        1000 4-byte messages in 392000.0 usec, or 392.0 usec/iter.
+        0.07785096460459184 megabits/sec.
+Starting bandwidth test: message size 4, num messages 1000
+Bandwidth test:
+        1000 4-byte messages in 137000.0 usec, or 137.0 usec/iter.
+        0.2227560447080292 megabits/sec.
+
+TCPBench -s 1000 msgs, 8192 bytes each:
+
+Starting pingpong test: message size 8192, num messages 1000, nonblocking=true, useselect=false
+Pingpong test:
+        1000 8192-byte messages in 724000.0 usec, or 724.0 usec/iter.
+        86.32596685082873 megabits/sec.
+Starting bandwidth test: message size 8192, num messages 1000
+Bandwidth test:
+        1000 8192-byte messages in 174000.0 usec, or 174.0 usec/iter.
+        359.1954022988506 megabits/sec.
+
+----------------------------------------------------------------------------
+Using nonblocking sockets and select:
+----------------------------------------------------------------------------
+
+TCPBench -s 1000 msgs, 4 bytes each:
+
+Starting pingpong test: message size 4, num messages 1000, nonblocking=true, useselect=true
+Pingpong test:
+        1000 4-byte messages in 502000.0 usec, or 502.0 usec/iter.
+        0.060791988296812746 megabits/sec.
+Starting bandwidth test: message size 4, num messages 1000
+Bandwidth test:
+        1000 4-byte messages in 163000.0 usec, or 163.0 usec/iter.
+        0.18722440567484663 megabits/sec.
+
+TCPBench -s 1000 msgs, 8192 bytes each:
+
+Starting pingpong test: message size 8192, num messages 1000, nonblocking=true, useselect=true
+Pingpong test:
+        1000 8192-byte messages in 804000.0 usec, or 804.0 usec/iter.
+        77.7363184079602 megabits/sec.
+Starting bandwidth test: message size 8192, num messages 1000
+Bandwidth test:
+        1000 8192-byte messages in 174000.0 usec, or 174.0 usec/iter.
+        359.1954022988506 megabits/sec.
+
+
+

@@ -1,0 +1,22 @@
+
+set grid noxtics ytics
+
+set y2tics 0.1
+
+#plot  \
+#  "F3" u 1 t '90th RT' w lp,  \
+#  "F3" u 3 t 'Actual 90th RT' w lp,  \
+#  "F3" u 2 t 'Continuous 90th RT' w l lw 2,  \
+#  "F3" u 5 t 'Processing rate' w l,  \
+#  "F3" u 11 axes x1y2 t 'Queue threshold' w l lt 8
+
+plot \
+  "F3" u 1 t '90th RT' w lp,  \
+  "F3" u 3 t 'Actual 90th RT' w lp,  \
+  "F3" u 5 t 'Processing rate' w l,  \
+  "F3" u 8 t 'Incoming rate' w lp, \
+  "F3" u 7 t 'Arrival rate' w l, \
+  "F3" u 9 axes x1y2 t 'Reject rate' w l
+
+pause -1
+

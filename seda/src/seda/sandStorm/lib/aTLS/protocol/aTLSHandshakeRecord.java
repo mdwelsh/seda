@@ -1,0 +1,47 @@
+/*
+ * Copyright (c) 2002 by The Regents of the University of California. 
+ * All rights reserved.
+ *
+ * Permission to use, copy, modify, and distribute this software and its
+ * documentation for any purpose, without fee, and without written agreement is
+ * hereby granted, provided that the above copyright notice and the following
+ * two paragraphs appear in all copies of this software.
+ *
+ * IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR
+ * DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES ARISING OUT
+ * OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF THE UNIVERSITY OF
+ * CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+ * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE PROVIDED HEREUNDER IS
+ * ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION TO
+ * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
+ *
+ * Author: Dennis Chi <denchi@uclink4.berkeley.edu> 
+ *
+ */
+
+package seda.sandStorm.lib.aTLS.protocol;
+
+/**
+ * An aTLSHandshakeRecord is created by aTLSPacketReader
+ * to indicate that a handshake message was just received.
+ */
+public class aTLSHandshakeRecord extends aTLSRecord{
+    
+    public boolean sslv2 = false;
+
+    public aTLSHandshakeRecord (byte[] data) {
+	super (data);
+    }
+
+    /**
+     * The Handshake stage must deal with a SSLv2 Client Hello
+     * differently, so aTLSPacketReader must keep track of that.
+     */
+    public aTLSHandshakeRecord (byte[] data, boolean sslv2) {
+	super (data);
+	this.sslv2 = true;
+    }
+}

@@ -1,0 +1,75 @@
+
+Notes on long response times with 1 socket
+
+* Appears running Haboob on mm56 with single HttpLoad client on bhikku
+* 1 sec RT delay if SELECT_TIMEOUT = 1000 on client 
+* 100 ms RT delay if SELECT_TIMEOUT = 100 on client
+* Still 1 sec RT delay if EVENT_QUEUE_TIMEOUT = 100 and SELECT_TIMEOUT = 1000
+
+- 1000 ms SELECT_TIMEOUT for READ_STAGE, 100 ms for WRITE/LISTEN: Still
+  see 1000 ms delays
+- 1000 ms SELECT_TIMEOUT for WRITE_STAGE, 100 ms for READ/LISTEN: Don't
+  see delays!
+- 1000 ms SELECT_TIMEOUT for LISTEN_STAGE, 100 ms for READ/WRITE: Don't
+  see delays!
+
+So the problem appears to be in READ_STAGE!
+
+- The 1 sec delay *Seems* to be happening just before the
+  startReadRequest is received. The question here is with only 1 socket
+  why is the read thread performing a select?
+
+- EXPLANATION:
+   - Previous packet data is completely read by user
+   - User issues close() on old socket and attempts to establish a new
+     connection. Both of these requests go to the WriteStage.
+   - Read thread immediately calls select(), since numActive = 1,
+     and blocks.
+   - Write event handler processes the close, removing the old socket
+     from the SelectSet (although the reader has already called select()
+     on it and is now blocking).
+   - The new connection is established (noticed by the WriteEventHandler)
+     and is passed to the user.
+   - The user immediately issues a startReader() request.
+   - The user sends the initial HTTP request down the pipe.
+   - The startReader() request is not processed until Read thread
+     returns from select()!
+
+POSSIBLE FIXES:
+  - Never block on select().
+    The problem then is that we end up blocking on the user request
+    queue, which may not have anything for us (i.e., no more write reqs
+    or start read reqs) - and what we really want to do is block until
+    select() tells us one or more sockets has data ready.
+
+  - Only block on select() if numActive() > some threshold.
+    Could actually make things worse for a number of sockets up to that
+    threshold - for the reason given above.
+
+  - Interrupt select() whenever we add or remove anything from its select set.
+    (Or perhaps, when numActive() == 1 and we remove something.)
+    This is interesting and should probably be investigated, as it
+    effectively fixes the problem (though may be hard to implement).
+     *** THIS sounds like the right solution...
+
+     
+---------------------------------------------------------------------------
+[22 March 02]
+
+When starting Haboob with NIO code and hitting it with an initial
+page load involving several inlined images, we see a LOT of:
+
+aSocketThread <aSocket ReadStage>: got exception
+java.util.ConcurrentModificationException
+java.util.ConcurrentModificationException
+        at java.util.HashMap$HashIterator.nextEntry(HashMap.java:750) 
+	at java.util.HashMap$KeyIterator.next(HashMap.java:786) 
+	at mdw.sandStorm.lib.aSocket.nio.NIOSelectSource.doPoll(NIOSelectSource.java:428)
+        at mdw.sandStorm.lib.aSocket.nio.NIOSelectSource.blocking_dequeue(NIOSelectSource.java:391)
+        at mdw.sandStorm.lib.aSocket.aSocketThreadManager$aSocketThread.run(aSocketThreadManager.java:138)
+        at java.lang.Thread.run(Thread.java:536)
+
+I assume this means that keys are being added to the SelectSource 
+at the same time that poll() is running - need to look into
+synchronization issues there - how is this solved for NBIO?
+

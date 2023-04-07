@@ -1,0 +1,385 @@
+<html><head>
+<title>NBIO: Java Non-blocking I/O Library</title>
+</head>
+
+<body bgcolor="#f8f8ff" link="#005BB7" vlink="#005BB7">
+
+<table border=0 hspace=4 cellspacing=2 width="100%" cellpadding=3>
+<tr bgcolor="#e0e0e8">
+<td width="100%">
+
+<font face="tahoma,arial,helvetica"><b><big><big>NBIO: Nonblocking I/O for Java</big></big></b><br>
+Release notes
+<p>
+
+<a href="http://www.cs.berkeley.edu/~mdw">Matt Welsh</a>, 
+<a href="mailto:mdw@cs.berkeley.edu">mdw@cs.berkeley.edu</a><br>
+Last updated 11 July 2002
+</font>
+
+</td></tr>
+</table>
+
+<p>
+[<b><a href="index.html">Back to SEDA Release Documentation</a></b>]
+
+<p>
+<table border=0 hspace=4 cellspacing=2 width="100%" cellpadding=3>
+<tr bgcolor="#e0e0e8">
+<td width="100%"><nobr><b><font face="arial,helvetica">Introduction</font></b></nobr></td>
+</tr></table>
+
+<p>
+<b>NBIO</b> is a library which implements nonblocking I/O facilities for Java. 
+Surprisingly,
+the standard JDK libraries (prior to JDK 1.4) do not provide nonblocking I/O.
+This means that in order to implement applications (such as web servers
+and other Internet services) which support many concurrent I/O streams,
+a large number of threads must be used. However, the overhead of threading
+(in Java, as well as more generally) limits the performance of such an
+implementation. 
+
+<p>
+What is needed is a nonblocking I/O library which allows a small number of
+threads to be used, along with a <tt>select()</tt> or <tt>poll()</tt> 
+like mechanism to test for incoming I/O events on a large number of 
+streams. This is what NBIO provides.
+
+<p>
+<table border=0 hspace=4 cellspacing=2 width="100%" cellpadding=3>
+<tr bgcolor="#e0e0e8">
+<td width="100%"><nobr><b><font face="arial,helvetica">Requirements</font></b></nobr></td>
+</tr></table>
+
+<p>
+NBIO is implemented using native calls (through JNI) to create and
+manage nonblocking sockets, as well as to provide <tt>select()</tt>-like
+functionality (that is, to test for I/O readiness or completion across a
+large number of sockets). For event delivery, NBIO supports both the 
+UNIX <tt>poll(2)</tt> system call and the <tt>/dev/poll</tt> 
+event-delivery mechanism. (Note that <tt>select()</tt> itself is not
+used, mainly because on most UNIX systems <tt>select()</tt> does not
+perform well with a large number of sockets.)
+
+NBIO is known to work on Linux 2.2 and 2.4 systems, Solaris 7 and 8, 
+FreeBSD, and HP/UX. Because it uses standard UNIX system calls, it 
+should simply work with, or at least be easy to port to, a large number 
+of other UNIX systems. 
+
+<p>
+We have also made a BETA release of NBIO for Windows 2000 systems.
+It is available from the <a href="http://seda.sourceforge.net">SEDA
+SourceForge pages</a>.
+
+<p>
+<table border=0 hspace=4 cellspacing=2 width="100%" cellpadding=3>
+<tr bgcolor="#e0e0e8">
+<td width="100%"><nobr><b><font face="arial,helvetica">Note on JDK 1.4 java.nio package</font></b></nobr></td>
+</tr></table>
+
+<p>
+The recently-announced JDK 1.4 beta includes the package
+<tt>java.nio</tt> which, among other things, provides nonblocking I/O 
+primitives for Java. As it turns out I am on the expert group for the
+Sun Java Specification Request for this package
+(see <a href="http://jcp.org/jsr/detail/051.jsp">this link</a> for more
+details). More details on this new API can be found
+<a href="http://java.sun.com/j2se/1.4/docs/guide/nio/index.html">at this
+URL</a>; as you can see, <tt>java.nio</tt> has been influenced somewhat
+by the NBIO APIs. 
+
+<p>
+My plan is to continue developing and supporting NBIO until stable,
+released versions of JDK 1.4 are available on Linux both from Sun and
+IBM. At that point I will deprecate NBIO in favor of the new APIs, but
+NBIO will continue to be supported (although the development will be frozen).
+Migration from NBIO to <tt>java.nio</tt> should not be difficult. If
+you are in need of an efficient, working nonblocking I/O library for
+Java, my recommendation is to go ahead and use NBIO, and move over to 
+<tt>java.nio</tt> once it is available. 
+
+<p>
+Note that the <a href="sandstorm.html">Sandstorm</a> system can use
+either NBIO or <tt>java.nio</tt> for nonblocking I/O.
+
+<p>
+<table border=0 hspace=4 cellspacing=2 width="100%" cellpadding=3>
+<tr bgcolor="#e0e0e8">
+<td width="100%"><nobr><b><font face="arial,helvetica">Compiling NBIO</font></b></nobr></td>
+</tr></table>
+
+<p>
+If you are compiling the complete SEDA code tree (including NBIO,
+Sandstorm, etc.), simply follow 
+<a href="sandstorm.html">the instructions in the Sandstorm release notes</a>
+instead of those given here. If you only wish to compile NBIO, 
+you need to configure the following environment variables:
+
+<ol>
+<li> Be sure that your <tt>CLASSPATH</tt> contains the following two
+     entries:
+  <ul>
+  <li> The "<tt>seda/src</tt>" directory in the SEDA release;
+  <li> The "<tt>.</tt>" directory
+  </ul>
+
+<p>
+For example, under Bourne-style UNIX shells, type:
+<pre>
+  CLASSPATH=$CLASSPATH:/path/to/seda/src:.
+  export CLASSPATH
+</pre>
+Under C-style shells:
+<pre>
+  setenv CLASSPATH "$CLASSPATH":/path/to/seda/src:.
+</pre>
+Replacing <tt>/path/to/seda</tt> with the directory where you unpacked
+the SEDA release.
+
+<p>
+<li> Be sure that your <tt>LD_LIBRARY_PATH</tt> contains the "<tt>seda/lib</tt>"
+directory in the SEDA release. This is necessary for the JVM to locate
+the NBIO native libraries. 
+
+<p>Under Bourne-style shells,
+<pre>
+  LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/seda/lib
+  export LD_LIBRARY_PATH
+</pre>
+Under C-style shells,
+<pre>
+  setenv LD_LIBRARY_PATH "$LD_LIBRARY_PATH":/path/to/seda/lib
+</pre>
+</ol>
+
+<p>
+To compile NBIO, simply <tt>cd</tt> to the <tt>seda/src/nbio</tt>
+directory and type <tt>make</tt>. If there are any problems with
+compilation, be absolutely sure that <tt>seda/src</tt> and "<tt>.</tt>"
+are in fact on your <tt>CLASSPATH</tt>. This is the most common
+problem when building the code.
+
+<p>
+<table border=0 hspace=4 cellspacing=2 width="100%" cellpadding=3>
+<tr bgcolor="#e0e0e8">
+<td width="100%"><nobr><b><font face="arial,helvetica">Package contents</font></b></nobr></td>
+</tr></table>
+
+<p>
+This package is called <tt>seda.nbio</tt>. 
+
+<p>
+You can <a href="javadoc/index.html">read the JavaDoc documentation for NBIO
+here</a>. The public classes included in the package are:
+
+<p>
+<dl>
+<dt> <b><tt>NonblockingInputStream</tt></b>
+<dd> A subclass of <tt>java.io.InputStream</tt> which supports 
+nonblocking semantics. 
+
+<p>
+<dt> <b><tt>NonblockingOutputStream</tt></b>
+<dd> A subclass of <tt>java.io.OutputStream</tt> which supports nonblocking
+semantics.
+
+<p>
+<dt> <b><tt>NonblockingSocket</tt></b>
+<dd>A subclass of <tt>java.net.Socket</tt> which supports nonblocking 
+semantics. Socket connection and read/write are nonblocking.
+
+<p>
+<dt> <b><tt>NonblockingServerSocket</tt></b>
+<dd>A variant of <tt>java.net.ServerSocket</tt> which supports nonblocking 
+semantics. Connection accept is nonblocking.
+
+<p>
+<dt> <b><tt>NonblockingDatagramSocket</tt></b>
+<dd>A variant of <tt>java.net.DatagramSocket</tt> which supports nonblocking 
+semantics. Socket read/write are nonblocking.
+
+<p>
+<dt> <b><tt>NonblockingMulticastSocket</tt></b>
+<dd>A variant of <tt>java.net.MulticastSocket</tt> which supports nonblocking 
+semantics. Socket read/write are nonblocking.
+
+<p>
+<dt> <b><tt>SelectSet</tt></b>
+<dd> A class which implements <tt>select()</tt>, allowing you to poll for
+events across a number of nonblocking I/O streams. The interface
+is in fact very similar to the SVR4 <tt>poll()</tt> system call.
+
+<p>
+<dt> <b><tt>SelectItem</tt></b>
+<dd>A class which represents a single nonblocking I/O stream to be
+used with SelectSet.
+
+</dl>
+
+<p>
+<table border=0 hspace=4 cellspacing=2 width="100%" cellpadding=3>
+<tr bgcolor="#e0e0e8">
+<td width="100%"><nobr><b><font face="arial,helvetica">Test programs</font></b></nobr></td>
+</tr></table>
+
+<p>
+In the <tt>test</tt> directory you will find a number of test programs which
+demonstrate the use of this library:
+
+<p>
+<dl>
+<dt> <b><tt>test/test</tt></b>
+<dd> Blocking and nonblocking variants of a simple server and client 
+application, used for demonstration purposes.
+
+<p>
+<dt> <b><tt>test/p2p-bench</tt></b>
+<dd>  The <tt>TCPBench</tt> program is a point-to-point TCP benchmark, 
+like <tt>ttcp</tt> for Java. It can use either blocking or nonblocking 
+sockets, and reports both round-trip latency and bandwidth for a given 
+message size.
+
+<p>
+<dt> <b><tt>test/multi-bench</tt></b>
+<dd>  The <tt>MultiServer</tt> program is a benchmark which implements a simple
+  TCP server which supports many connections. It is capable of 
+  using either nonblocking sockets (with a single thread) or blocking
+  sockets (with many threads). It exchanges a series of packets 
+  which each client that connects to it. The benchmark reports
+  the total bandwidth measured by the server. The <tt>MultiClient</tt>
+  program is used as the client.
+</dl>
+
+<p>
+<table border=0 hspace=4 cellspacing=2 width="100%" cellpadding=3>
+<tr bgcolor="#e0e0e8">
+<td width="100%"><nobr><b><font face="arial,helvetica">Using the library</font></b></nobr></td>
+</tr></table>
+
+<p>
+Note that NBIO is for use with <b>NATIVE THREADS ONLY</b>, not
+the "Green Threads" package supported by older JVMs. I believe that 
+all JVMs from JDK 1.3 onwards only support native threads, so this is
+not a problem for most users. However, if you are using an older JVM
+with Green Threads, you need to be aware of this issue.
+
+<p>
+The problem is that a blocking call to <tt>SelectSet.select()</tt> 
+actually blocks the OS thread making the call. If you are using Green 
+Threads, this will block the entire JVM, because Green Threads uses 
+a single OS thread to emulate many Java threads. This is fine for a 
+single-threaded application, but in general you only want to block 
+the <em>Java</em> thread making the call. Supporting this behavior 
+under Green Threads is complicated and I don't think it's important;
+with the NBIO library you should be able to use native threads, since you
+will need much fewer of them than you would with blocking I/O.
+
+<p>
+Of course, you can use the other NBIO routines (nonblocking sockets, etc.) 
+with Green Threads, since they do not block. <tt>SelectSet.select()</tt>
+is the only real problem. However, since Green Threads appears to be
+obsolete, I strongly recommend only using Native Threads with NBIO.
+
+<p>
+If you are running on Linux 2.2.x systems you may wish to increase your
+file descriptor limit, which increases the number of simultaneous socket
+connections the system can have. This is important as one of the basic 
+uses for NBIO is to write server applications which can support many 
+simultaneous connections (many more connections than were possible 
+using threads). This is relatively simple to do:
+
+<ol>
+<li> Create the file <tt>/etc/initscript</tt> (if it does not already
+exist) and place the following commands into it:
+<pre>
+umask 022
+ulimit -c 2097151
+ulimit -Hn 32768
+PATH=/bin:/sbin:/usr/bin:/usr/sbin
+export PATH
+eval exec "$4"
+</pre>
+If <tt>/etc/initscript</tt> already exists, add the command
+<pre>
+ulimit -Hn 32768
+</pre>
+to it.
+
+<p>
+<li> Add the following commands to <tt>/etc/rc.d/rc.local</tt> (or some
+other startup script which is run at boot time):
+<pre>
+echo 32768 &gt; /proc/sys/fs/file-max
+echo 65536 &gt; /proc/sys/fs/inode-max
+</pre>
+
+<p>
+<li> Add the following command to your login scripts (e.g.,
+<tt>.bashrc</tt> or <tt>.cshrc</tt>):
+<pre>
+ulimit -n 32768
+</pre>
+
+<p>
+<li> Reboot the system for the above changes to take effect.
+</ol>
+
+<p>
+In the future we would like to support nonblocking disk I/O, however, most
+UNIX-based operating systems do not in fact support nonblocking access to
+disk files; you must use a lower-level "raw disk" facility instead.
+If anyone wishes to implement nonblocking file or disk I/O for NBIO,
+please get in touch with the SEDA project developers.
+
+<a name="copyright">
+<p>
+<table border=0 hspace=4 cellspacing=2 width="100%" cellpadding=3>
+<tr bgcolor="#e0e0e8">
+<td width="100%"><nobr><b><font face="arial,helvetica">Copyright license</font></b></nobr></td>
+</tr></table>
+
+<p>
+This code is covered under the following Open Source license:
+ 
+<p>
+<b>
+  Copyright (c) 2002 by Matt Welsh and The Regents of the University of 
+  California. All rights reserved.
+</b>
+ 
+<p>
+<b>
+  Permission to use, copy, modify, and distribute this software and its
+  documentation for any purpose, without fee, and without written agreement is
+  hereby granted, provided that the above copyright notice and the following
+  two paragraphs appear in all copies of this software.
+</b>
+
+  
+<p>
+<b>
+  IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR
+  DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES ARISING OUT
+  OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF THE UNIVERSITY OF
+  CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+</b>
+  
+<p>
+<b>
+  THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+  INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
+  AND FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE PROVIDED HEREUNDER IS
+  ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION TO
+  PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
+</b>
+
+<p>
+If you have any questions, comments, or bug reports, don't hesitate to get
+in touch with me!
+
+<p><hr><p>
+
+<address>Matt Welsh / mdw@cs.berkeley.edu</address><br>
+
+</body>
+</html>

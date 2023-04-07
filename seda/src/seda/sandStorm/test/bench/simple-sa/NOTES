@@ -1,0 +1,72 @@
+COMMANDS FOR TUNING CONTROLLER:
+
+  # Run with ClientStage.REPORT_SAMPLES=100
+
+  sandstorm exp-cpu-tp.cfg rate=256 mu=32 num_msgs=10000 global.rtController.targetResponseTime=100.0 2>&1 | tee LOG
+  grep '^RT:.*90th' LOG > F
+  grep 'est ' LOG > F2
+  cp F F2 ~/public_html/private/
+
+  # wget these files on samadhi
+
+  gnuplot
+
+  # Look at 90th RT over time
+  plot "F" u 7 w lp
+
+  # Look at mu and estimated 90th RT
+  plot "F2" u 6 w lp, "F2" u 8 w lp
+
+  # Scatterplot of mu versus 90th RT
+  plot "F2" u 8:6 w p
+
+----------------------
+
+LOOK AT:
+
+LOG.lambda256.mu128.rt100
+LOG.lambda256.mu128.rt50
+
+ sandstorm exp-cpu-sched-rtcon.cfg rate=256 num_msgs=200000 global.rtController.targetResponseTime=50.0 2>&1 | tee LOG
+
+---------------------------
+
+COMMANDS FOR TUNING MULTICLASS CONTROLLER:
+
+sandstorm exp-cpu-multiclass-rtcon.cfg rate=500.0 num_msgs=100000 2>&1 | tee LOG
+
+grep 'class 0:' LOG > c0
+grep 'class 1:' LOG > c1
+grep 'class 2:' LOG > c2
+grep 'REJRT0' LOG > r0
+grep 'REJRT1' LOG > r1
+grep 'REJRT2' LOG > r2
+grep '^RT0:' LOG > rt0
+grep '^RT1:' LOG > rt1
+grep '^RT2:' LOG > rt2
+
+gnuplot
+
+# Plot controller measured 90thRT for each class
+plot "c0" u 6 w lp, "c1" u 6 w lp, "c2" u 6 w lp
+
+# Plot controller induced rate for each class
+plot "c0" u 11 w lp, "c1" u 11 w lp, "c2" u 11 w lp
+
+# Plot client measured 90thRT for each class
+plot "r0" u 7 w lp, "r1" u 7 w lp, "r2" u 7 w lp
+
+# Plot client measured reject rate for each class
+plot "r0" u 9 w lp, "r1" u 9 w lp, "r2" u 9 w lp
+
+# Plot client measured delay bound violation rate for each class
+plot "r0" u 11 w lp, "r1" u 11 w lp, "r2" u 11 w lp
+
+# Compute average reject rate for each class
+stats.pl -f r0 9
+stats.pl -f r1 9
+stats.pl -f r2 9
+
+# Compute average delay bound for class 2
+stats.pl -f r2 11
+

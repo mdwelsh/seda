@@ -1,0 +1,45 @@
+# Generated automatically from Makefile.in by configure.
+
+NODOCS = true
+
+BASE = $(shell pwd | sed 's@\(.*\)/seda.*$$@\1/seda@' )
+JAVAHOME = @JAVA_HOME@
+
+SHAREDLINK=$(BASE)/../../lib/libMDWUtil.so
+
+all: libMDWUtil.so $(SHAREDLINK)
+
+ifeq (@PLATFORM@, linux) 
+  ARCHFLAGS = -Dlinux 
+  JNIINCLUDE = -I$(JAVAHOME)/include -I$(JAVAHOME)/include/genunix -I$(JAVAHOME)/include/linux
+endif
+
+ifeq (@PLATFORM@, solaris)
+  ARCHFLAGS = -DSOLARIS
+  JNIINCLUDE = -I$(JAVAHOME)/include -I$(JAVAHOME)/include/genunix -I$(JAVAHOME)/include/solaris
+endif
+
+INCLUDES = $(JNIINCLUDE) -I./include 
+
+CC = gcc
+CFLAGS = -O2 -fPIC -Wall $(INCLUDES) $(ARCHFLAGS) @DEFS@
+CLIBS = 
+
+COBJS = util.o
+
+libMDWUtil.so: $(COBJS)
+	echo "$(CC) -shared $(CFLAGS) $(COBJS) -o libMDWUtil.so $(CLIBS)"
+	@$(CC) -shared $(CFLAGS) $(COBJS) -o libMDWUtil.so $(CLIBS)
+
+$(SHAREDLINK): libMDWUtil.so
+	echo "rm -f $@"
+	@rm -f $@
+	echo "cp `pwd`/libMDWUtil.so $@"
+	@cp `pwd`/libMDWUtil.so $@
+	#echo "ln -sf `pwd`/libMDWUtil.so $@"
+	#@ln -sf `pwd`/libMDWUtil.so $@
+
+clean:
+	@rm -f $(COBJS) libMDWUtil.so
+	@rm -f $(SHAREDLINK)
+

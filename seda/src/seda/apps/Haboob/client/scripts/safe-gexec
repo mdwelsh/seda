@@ -1,0 +1,166 @@
+#!/usr/bin/perl
+
+# safe-gexec: A wrapper to gexec which avoids problems with hung nodes.
+#
+# Works by using gexec to invoke 'safe-gexec-wrapper' on more nodes than
+# requested. The wrappers handshake with this program through a socket
+# connection, instructing them either to run the given program or exit.
+# Also has built-in timeout which causes the client to exit if nodes
+# fail to respond. This avoids problems where nodes appear to be available 
+# to vexec/ganglia but are missing filesystems or have other undetected 
+# problems.
+#
+# Matt Welsh, mdw@cs.berkeley.edu
+
+require 5.002;
+use Socket;
+use Getopt::Std;
+
+sub usage {
+  print STDERR "Usage: safe-gexec [options] <cmd>\n";
+  print STDERR " Options:\n";
+  print STDERR "\t-n <numhosts>\t Run on <numhosts> hosts\n";
+  print STDERR "\n";
+  exit -1;
+}
+
+if ($#ARGV == -1) { 
+  &usage;
+}
+
+
+# Enable debugging
+$DEBUG = 0;
+
+$OUTPUT_AUTOFLUSH = 1;
+
+getopt('n:');
+if ($opt_n) {
+  $NUMHOSTS = $opt_n;
+} else {
+  $NUMHOSTS = 1;
+}
+
+# Actual number of nodes to run wrapper on
+$REALNUMHOSTS = $NUMHOSTS+2;
+$LOCALHOST = `hostname`; chop $LOCALHOST;
+$LOCALPORT = 78332;
+# Unique "job key" used to ensure that jobs communicating with this
+# client aren't from previous invocations of safe-gexec-wrapper
+$KEY = sprintf("0x%x", rand(100000));
+
+$cmd = "gexec -n $REALNUMHOSTS safe-gexec-wrapper $LOCALHOST:$LOCALPORT $KEY @ARGV 2>&1";
+
+$date = `date`;
+print STDERR "#SAFE-REXEC: date $date\n";
+print STDERR "#SAFE-REXEC: command $cmd\n";
+print STDERR "#SAFE-REXEC: client $LOCALHOST\n";
+
+# Open server socket
+my $proto = getprotobyname('tcp');
+socket(Servsock, PF_INET, SOCK_STREAM, $proto) || die "socket: $!";
+setsockopt(Servsock, SOL_SOCKET, SO_REUSEADDR, pack("l", 1)) || die "setsockopt: $!";
+bind(Servsock, sockaddr_in($LOCALPORT, INADDR_ANY)) || die "bind: $!";
+listen(Servsock, SOMAXCONN) || die "listen: $!";
+
+# Set up connect timeout
+$FINISHED_CONNECTIONS = 0;
+$SIG{ALRM} = sub {
+    if (!$GOT_CONNECTION) {
+      print STDERR "#SAFE-REXEC: alarm: $NUMCONNS out of $NUMHOSTS connected\n";
+      $date = `date`; chop $date;
+      print STDERR "#SAFE-REXEC: exit-time $date\n";
+      exit 0;
+    }
+};
+alarm 60;
+
+# Run gexec
+open (CMD, "$cmd|") || die "Can't run $cmd: $!";
+
+# Wait for connections
+$NUMCONNS = 0;
+while ($NUMCONNS < $NUMHOSTS) {
+  $paddr = accept(Clisock,Servsock); 
+  $GOT_CONNECTION = 1;
+
+  my ($port, $iaddr) = sockaddr_in($paddr);
+  my $name = gethostbyaddr($iaddr,AF_INET);
+  print STDERR "#SAFE-REXEC: Connection from $name [", inet_ntoa($iaddr), "] at port $port\n"; 
+
+  $line = <Clisock>;
+  if ($DEBUG) { print STDERR "Got line: $line"; }
+  if (! $line =~ /^safe-gexec/) {
+    print STDERR "#SAFE-REXEC: Bad handshake from $name:$port: $line";
+    close Clisock;
+    next;
+  } else {
+  }
+  
+  $line = <Clisock>;
+  if ($DEBUG) { print STDERR "Got line: $line"; }
+  if ($line =~ /^key (\S+)/) {
+    $thekey = $1;
+    if ($thekey != $KEY) {
+      print STDERR "#SAFE-REXEC: Bad key from $name:$port: $line";
+      close Clisock;
+      next;
+    }
+  } else {
+    print STDERR "#SAFE-REXEC: Bad key line from $name:$port: $line";
+    close Clisock;
+    next;
+  }
+
+  $line = <Clisock>;
+  if ($DEBUG) { print STDERR "Got line: $line"; }
+  if (!($line =~ /^ok/)) {
+    print STDERR "#SAFE-REXEC: Bad status from $name:$port: $line";
+    close Clisock;
+    next;
+  } else {
+    send Clisock,"run\n",0;
+    $line = <Clisock>;
+    if (!($line =~ /^ok/)) {
+      print STDERR "#SAFE-REXEC: Bad status from $name:$port: $line";
+      close Clisock;
+      next;
+    } 
+    print STDERR "#SAFE-REXEC: Running on $name\n";
+    $SOCKETS[$NUMCONNS] = Clisock;
+    $NUMCONNS++;
+  }
+}
+
+$FINISHED_CONNECTIONS = 0;
+alarm 0;
+
+readcmd:
+while (<CMD>) {
+  if (/javacore/) {
+    print STDERR;
+    print STDERR "#SAFE-REXEC: GOT JAVA CORE DUMP, EXITING **********\n";
+    close(CMD);
+    exit(0);
+  }
+  if (/#SAFE-REXEC-WRAPPER: job-done/) {
+    print STDERR;
+    print STDERR "#SAFE-REXEC: Got exit from client $NUMHOSTS\n";
+    $NUMHOSTS--;
+    if ($NUMHOSTS == 0) { 
+      last readcmd; 
+    }
+  }
+  print STDERR;
+}
+
+print STDERR "#SAFE-REXEC: Done with all clients\n";
+$SIG{ALRM} = sub {
+  print STDERR "#SAFE-REXEC: Timeout waiting for command to exit, quitting.\n";
+  exit 0;
+};
+alarm 15;
+close (CMD);
+
+print "#SAFE-REXEC: done\n";
+
